@@ -18,6 +18,7 @@ class AppConfig:
     show_filenames: bool
     window_width: int
     window_height: int
+    scroll_direction: str
 
 
 DEFAULT_CONFIG = AppConfig(
@@ -30,6 +31,7 @@ DEFAULT_CONFIG = AppConfig(
     show_filenames=False,
     window_width=900,
     window_height=600,
+    scroll_direction="vertical",
 )
 
 
@@ -63,6 +65,9 @@ def load_config() -> AppConfig:
         show_filenames=bool(data.get("show_filenames", DEFAULT_CONFIG.show_filenames)),
         window_width=int(data.get("window_width", DEFAULT_CONFIG.window_width)),
         window_height=int(data.get("window_height", DEFAULT_CONFIG.window_height)),
+        scroll_direction=str(
+            data.get("scroll_direction", DEFAULT_CONFIG.scroll_direction)
+        ),
     )
 
 
@@ -78,5 +83,6 @@ def write_config(config: AppConfig) -> None:
         "show_filenames": config.show_filenames,
         "window_width": config.window_width,
         "window_height": config.window_height,
+        "scroll_direction": config.scroll_direction,
     }
     CONFIG_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

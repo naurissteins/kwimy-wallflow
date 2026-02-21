@@ -30,6 +30,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._flowbox: Gtk.FlowBox | None = None
         self._scroller: Gtk.ScrolledWindow | None = None
         self._toast_overlay: Adw.ToastOverlay | None = None
+        self._scroll_direction: str = "vertical"
 
     def do_startup(self) -> None:
         Adw.Application.do_startup(self)
@@ -38,6 +39,11 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
     def do_activate(self) -> None:
         Adw.Application.do_activate(self)
         self.config = load_config()
+        self._scroll_direction = (
+            self.config.scroll_direction or "vertical"
+        ).strip().lower()
+        if self._scroll_direction not in {"vertical", "horizontal"}:
+            self._scroll_direction = "vertical"
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
         window = Adw.ApplicationWindow(application=self)
@@ -57,6 +63,10 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         flowbox = Gtk.FlowBox()
         flowbox.set_selection_mode(Gtk.SelectionMode.SINGLE)
         flowbox.set_activate_on_single_click(True)
+        if self._scroll_direction == "horizontal":
+            flowbox.set_orientation(Gtk.Orientation.VERTICAL)
+        else:
+            flowbox.set_orientation(Gtk.Orientation.HORIZONTAL)
         flowbox.set_max_children_per_line(6)
         flowbox.set_column_spacing(12)
         flowbox.set_row_spacing(12)
@@ -66,6 +76,10 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
 
         scroller = Gtk.ScrolledWindow()
         scroller.set_child(flowbox)
+        if self._scroll_direction == "horizontal":
+            scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER)
+        else:
+            scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self._scroller = scroller
 
         toast_overlay = Adw.ToastOverlay()

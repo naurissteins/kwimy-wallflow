@@ -34,7 +34,8 @@ Default config:
   "window_decorations": false,
   "show_filenames": false,
   "window_width": 900,
-  "window_height": 600
+  "window_height": 600,
+  "scroll_direction": "vertical"
 }
 ```
 
@@ -47,3 +48,4 @@ Edit `assets/style.css` to change background, borders, and typography.
 - `thumbnail_size` is the width. Height depends on `thumbnail_shape`:
   - `landscape` (default): 16:9
   - `square`: 1:1
+- `scroll_direction` controls whether the grid scrolls vertically or horizontally. Use `vertical` or `horizontal`.
