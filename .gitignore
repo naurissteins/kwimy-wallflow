@@ -12,3 +12,5 @@ env/
 .DS_Store
 *.log
 DEV.md
+build
+kwimy_wallflow.egg-info

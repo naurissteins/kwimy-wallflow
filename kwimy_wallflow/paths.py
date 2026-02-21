@@ -18,4 +18,4 @@ HOME = Path.home()
 CONFIG_DIR = _xdg_dir("XDG_CONFIG_HOME", HOME / ".config") / APP_NAME
 CACHE_DIR = _xdg_dir("XDG_CACHE_HOME", HOME / ".cache") / APP_NAME
 
-ASSETS_DIR = Path(__file__).resolve().parent.parent / "assets"
+ASSETS_DIR = Path(__file__).resolve().parent / "assets"
