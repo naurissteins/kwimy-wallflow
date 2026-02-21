@@ -17,6 +17,8 @@ from .wallpapers import list_wallpapers
 
 
 class WallflowApp(Adw.Application):
+    LANDSCAPE_RATIO = 9 / 16
+
     def __init__(self) -> None:
         super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.FLAGS_NONE)
         self.config: AppConfig | None = None
@@ -101,7 +103,8 @@ class WallflowApp(Adw.Application):
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         thumb = self._load_thumbnail(path)
         picture = Gtk.Picture.new_for_paintable(thumb)
-        picture.set_size_request(self.config.thumbnail_size, self.config.thumbnail_size)
+        thumb_width, thumb_height = self._thumbnail_dimensions()
+        picture.set_size_request(thumb_width, thumb_height)
         picture.set_content_fit(Gtk.ContentFit.COVER)
         picture.add_css_class("wallflow-thumb")
 
@@ -145,10 +148,10 @@ class WallflowApp(Adw.Application):
             except Exception:
                 pass
 
-        size = self.config.thumbnail_size
+        width, height = self._thumbnail_dimensions()
         try:
             pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-                str(path), size, size, True
+                str(path), width, height, True
             )
             pixbuf.savev(str(thumbnail_path), "png", [], [])
             return Gdk.Texture.new_for_pixbuf(pixbuf)
@@ -157,9 +160,19 @@ class WallflowApp(Adw.Application):
 
     def _thumbnail_cache_path(self, path: Path) -> Path:
         stat = path.stat()
-        payload = f"{path}-{stat.st_mtime}-{stat.st_size}-{self.config.thumbnail_size}"
+        width, height = self._thumbnail_dimensions()
+        payload = f"{path}-{stat.st_mtime}-{stat.st_size}-{width}x{height}"
         digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
         return CACHE_DIR / f"{digest}.png"
+
+    def _thumbnail_dimensions(self) -> tuple[int, int]:
+        width = max(1, self.config.thumbnail_size if self.config else 256)
+        shape = (self.config.thumbnail_shape if self.config else "landscape").lower()
+        if shape == "square":
+            height = width
+        else:
+            height = max(1, int(width * self.LANDSCAPE_RATIO))
+        return width, height
 
     @staticmethod
     def _empty_pixbuf() -> GdkPixbuf.Pixbuf:

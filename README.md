@@ -29,6 +29,7 @@ Default config:
   "wallpaper_dir": "~/Pictures/Wallpapers",
   "matugen_mode": "dark",
   "thumbnail_size": 256,
+  "thumbnail_shape": "landscape",
   "batch_size": 16,
   "window_decorations": false,
   "show_filenames": false
@@ -41,3 +42,6 @@ Edit `assets/style.css` to change background, borders, and typography.
 ## Notes
 - `matugen` must be available in `PATH`.
 - The app reads wallpapers from `wallpaper_dir` and supports: `jpg`, `jpeg`, `png`, `webp`, `bmp`, `gif`.
+- `thumbnail_size` is the width. Height depends on `thumbnail_shape`:
+  - `landscape` (default): 16:9
+  - `square`: 1:1

@@ -12,6 +12,7 @@ class AppConfig:
     wallpaper_dir: str
     matugen_mode: str
     thumbnail_size: int
+    thumbnail_shape: str
     batch_size: int
     window_decorations: bool
     show_filenames: bool
@@ -21,6 +22,7 @@ DEFAULT_CONFIG = AppConfig(
     wallpaper_dir="~/Pictures/Wallpapers",
     matugen_mode="dark",
     thumbnail_size=256,
+    thumbnail_shape="landscape",
     batch_size=16,
     window_decorations=False,
     show_filenames=False,
@@ -47,6 +49,9 @@ def load_config() -> AppConfig:
         wallpaper_dir=str(data.get("wallpaper_dir", DEFAULT_CONFIG.wallpaper_dir)),
         matugen_mode=str(data.get("matugen_mode", DEFAULT_CONFIG.matugen_mode)),
         thumbnail_size=int(data.get("thumbnail_size", DEFAULT_CONFIG.thumbnail_size)),
+        thumbnail_shape=str(
+            data.get("thumbnail_shape", DEFAULT_CONFIG.thumbnail_shape)
+        ),
         batch_size=int(data.get("batch_size", DEFAULT_CONFIG.batch_size)),
         window_decorations=bool(
             data.get("window_decorations", DEFAULT_CONFIG.window_decorations)
@@ -61,6 +66,7 @@ def write_config(config: AppConfig) -> None:
         "wallpaper_dir": config.wallpaper_dir,
         "matugen_mode": config.matugen_mode,
         "thumbnail_size": config.thumbnail_size,
+        "thumbnail_shape": config.thumbnail_shape,
         "batch_size": config.batch_size,
         "window_decorations": config.window_decorations,
         "show_filenames": config.show_filenames,
