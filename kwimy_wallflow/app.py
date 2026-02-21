@@ -124,7 +124,15 @@ class WallflowApp(Adw.Application):
             return
         try:
             subprocess.Popen(
-                ["matugen", "image", str(path), "-m", self.config.matugen_mode]
+                [
+                    "matugen",
+                    "image",
+                    str(path),
+                    "-m",
+                    self.config.matugen_mode,
+                    "--source-color-index",
+                    "0",
+                ]
             )
             self._show_toast(f"Applied {path.name}")
         except FileNotFoundError:
