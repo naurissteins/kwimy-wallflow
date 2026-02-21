@@ -30,7 +30,8 @@ Default config:
   "matugen_mode": "dark",
   "thumbnail_size": 256,
   "batch_size": 16,
-  "window_decorations": false
+  "window_decorations": false,
+  "show_filenames": false
 }
 ```
 

@@ -14,6 +14,7 @@ class AppConfig:
     thumbnail_size: int
     batch_size: int
     window_decorations: bool
+    show_filenames: bool
 
 
 DEFAULT_CONFIG = AppConfig(
@@ -22,6 +23,7 @@ DEFAULT_CONFIG = AppConfig(
     thumbnail_size=256,
     batch_size=16,
     window_decorations=False,
+    show_filenames=False,
 )
 
 
@@ -49,6 +51,7 @@ def load_config() -> AppConfig:
         window_decorations=bool(
             data.get("window_decorations", DEFAULT_CONFIG.window_decorations)
         ),
+        show_filenames=bool(data.get("show_filenames", DEFAULT_CONFIG.show_filenames)),
     )
 
 
@@ -60,5 +63,6 @@ def write_config(config: AppConfig) -> None:
         "thumbnail_size": config.thumbnail_size,
         "batch_size": config.batch_size,
         "window_decorations": config.window_decorations,
+        "show_filenames": config.show_filenames,
     }
     CONFIG_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

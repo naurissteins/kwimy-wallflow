@@ -105,13 +105,13 @@ class WallflowApp(Adw.Application):
         picture.set_content_fit(Gtk.ContentFit.COVER)
         picture.add_css_class("wallflow-thumb")
 
-        label = Gtk.Label(label=path.name)
-        label.set_wrap(True)
-        label.set_xalign(0.0)
-        label.add_css_class("wallflow-label")
-
         box.append(picture)
-        box.append(label)
+        if self.config.show_filenames:
+            label = Gtk.Label(label=path.name)
+            label.set_wrap(True)
+            label.set_xalign(0.0)
+            label.add_css_class("wallflow-label")
+            box.append(label)
         button.set_child(box)
         button.connect("clicked", lambda *_: self._run_matugen(path))
         return button
