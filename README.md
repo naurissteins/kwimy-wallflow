@@ -29,7 +29,8 @@ Default config:
   "wallpaper_dir": "~/Pictures/Wallpapers",
   "matugen_mode": "dark",
   "thumbnail_size": 256,
-  "batch_size": 16
+  "batch_size": 16,
+  "window_decorations": false
 }
 ```
 

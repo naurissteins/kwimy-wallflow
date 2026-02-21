@@ -13,6 +13,7 @@ class AppConfig:
     matugen_mode: str
     thumbnail_size: int
     batch_size: int
+    window_decorations: bool
 
 
 DEFAULT_CONFIG = AppConfig(
@@ -20,6 +21,7 @@ DEFAULT_CONFIG = AppConfig(
     matugen_mode="dark",
     thumbnail_size=256,
     batch_size=16,
+    window_decorations=False,
 )
 
 
@@ -44,6 +46,9 @@ def load_config() -> AppConfig:
         matugen_mode=str(data.get("matugen_mode", DEFAULT_CONFIG.matugen_mode)),
         thumbnail_size=int(data.get("thumbnail_size", DEFAULT_CONFIG.thumbnail_size)),
         batch_size=int(data.get("batch_size", DEFAULT_CONFIG.batch_size)),
+        window_decorations=bool(
+            data.get("window_decorations", DEFAULT_CONFIG.window_decorations)
+        ),
     )
 
 
@@ -54,5 +59,6 @@ def write_config(config: AppConfig) -> None:
         "matugen_mode": config.matugen_mode,
         "thumbnail_size": config.thumbnail_size,
         "batch_size": config.batch_size,
+        "window_decorations": config.window_decorations,
     }
     CONFIG_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

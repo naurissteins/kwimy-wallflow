@@ -37,14 +37,14 @@ class WallflowApp(Adw.Application):
         window = Adw.ApplicationWindow(application=self)
         window.set_default_size(900, 600)
         window.set_title("Kwimy Wallflow")
-        window.set_decorated(False)
-
-        header = Adw.HeaderBar()
-        header.set_title_widget(Gtk.Label(label="Kwimy Wallflow"))
-        header.add_css_class("wallflow-header")
+        window.set_decorated(bool(self.config.window_decorations))
 
         toolbar_view = Adw.ToolbarView()
-        toolbar_view.add_top_bar(header)
+        if self.config.window_decorations:
+            header = Adw.HeaderBar()
+            header.set_title_widget(Gtk.Label(label="Kwimy Wallflow"))
+            header.add_css_class("wallflow-header")
+            toolbar_view.add_top_bar(header)
 
         flowbox = Gtk.FlowBox()
         flowbox.set_selection_mode(Gtk.SelectionMode.NONE)
