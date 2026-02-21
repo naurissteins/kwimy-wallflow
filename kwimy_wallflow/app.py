@@ -90,6 +90,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         window.set_content(toolbar_view)
         window.present()
         flowbox.grab_focus()
+        self._init_thumbnail_loader()
 
         wallpaper_dir = Path(self.config.wallpaper_dir).expanduser()
         self._wallpaper_paths = list_wallpapers(wallpaper_dir)
@@ -142,6 +143,10 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         if not self._toast_overlay:
             return
         self._toast_overlay.add_toast(Adw.Toast.new(message))
+
+    def do_shutdown(self) -> None:
+        self._shutdown_thumbnail_loader()
+        Adw.Application.do_shutdown(self)
 
 
 def main() -> int:

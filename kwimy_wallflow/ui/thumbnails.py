@@ -1,35 +1,58 @@
 from __future__ import annotations
 
 import hashlib
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import gi
 
 gi.require_version("Gtk", "4.0")
-
 gi.require_version("GdkPixbuf", "2.0")
-
 gi.require_version("Gdk", "4.0")
+gi.require_version("GLib", "2.0")
 
-from gi.repository import Gdk, GdkPixbuf, Gio, Gtk
+from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk
 
 from ..paths import CACHE_DIR
 
 
 class ThumbnailMixin:
+    def _init_thumbnail_loader(self) -> None:
+        if getattr(self, "_thumb_executor", None) is not None:
+            return
+        self._thumb_executor = ThreadPoolExecutor(max_workers=2)
+        self._thumb_waiters: dict[str, list[tuple[Gtk.Picture, Gtk.Spinner]]] = {}
+        self._thumb_futures = {}
+
+    def _shutdown_thumbnail_loader(self) -> None:
+        executor = getattr(self, "_thumb_executor", None)
+        if executor is not None:
+            executor.shutdown(wait=False)
+            self._thumb_executor = None
+
     def _build_wallpaper_card(self, path: Path) -> Gtk.Widget:
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         box.add_css_class("wallflow-card")
         box.set_focusable(False)
 
-        thumb = self._load_thumbnail(path)
+        thumb, cached = self._load_thumbnail_cached(path)
         picture = Gtk.Picture.new_for_paintable(thumb)
         thumb_width, thumb_height = self._thumbnail_dimensions()
         picture.set_size_request(thumb_width, thumb_height)
         picture.set_content_fit(Gtk.ContentFit.COVER)
         picture.add_css_class("wallflow-thumb")
 
-        box.append(picture)
+        thumb_overlay = Gtk.Overlay()
+        thumb_overlay.set_child(picture)
+
+        spinner = Gtk.Spinner()
+        spinner.set_halign(Gtk.Align.CENTER)
+        spinner.set_valign(Gtk.Align.CENTER)
+        spinner.add_css_class("wallflow-thumb-spinner")
+        spinner.set_visible(False)
+        thumb_overlay.add_overlay(spinner)
+
+        box.append(thumb_overlay)
         if self.config.show_filenames:
             label = Gtk.Label(label=path.name)
             label.set_wrap(True)
@@ -40,28 +63,89 @@ class ThumbnailMixin:
         child = Gtk.FlowBoxChild()
         child.set_child(box)
         child.wallpaper_path = str(path)
+
+        if not cached:
+            spinner.set_visible(True)
+            spinner.start()
+            self._queue_thumbnail_load(path, picture, spinner)
+
         return child
 
-    def _load_thumbnail(self, path: Path) -> Gdk.Texture:
+    def _load_thumbnail_cached(self, path: Path) -> tuple[Gdk.Texture, bool]:
         if not self.config:
-            return Gdk.Texture.new_for_pixbuf(self._empty_pixbuf())
+            return Gdk.Texture.new_for_pixbuf(self._empty_pixbuf()), True
 
         thumbnail_path = self._thumbnail_cache_path(path)
         if thumbnail_path.exists():
             try:
-                return Gdk.Texture.new_from_file(
-                    Gio.File.new_for_path(str(thumbnail_path))
+                return (
+                    Gdk.Texture.new_from_file(Gio.File.new_for_path(str(thumbnail_path))),
+                    True,
                 )
             except Exception:
                 pass
+
+        return Gdk.Texture.new_for_pixbuf(self._empty_pixbuf()), False
+
+    def _queue_thumbnail_load(
+        self, path: Path, picture: Gtk.Picture, spinner: Gtk.Spinner
+    ) -> None:
+        executor = getattr(self, "_thumb_executor", None)
+        if executor is None:
+            return
+
+        key = str(path)
+        waiters = self._thumb_waiters.setdefault(key, [])
+        waiters.append((picture, spinner))
+
+        if key in self._thumb_futures:
+            return
+
+        future = executor.submit(self._generate_thumbnail_file, path)
+        self._thumb_futures[key] = future
+        future.add_done_callback(
+            lambda fut, key=key: GLib.idle_add(self._apply_thumbnail_result, key, fut)
+        )
+
+    def _apply_thumbnail_result(self, key: str, future) -> bool:
+        self._thumb_futures.pop(key, None)
+
+        try:
+            thumbnail_path = future.result()
+        except Exception:
+            thumbnail_path = None
+
+        waiters = self._thumb_waiters.pop(key, [])
+        if waiters:
+            for picture, spinner in waiters:
+                if thumbnail_path:
+                    self._set_picture_from_file(picture, thumbnail_path)
+                spinner.stop()
+                spinner.set_visible(False)
+        return False
+
+    def _set_picture_from_file(self, picture: Gtk.Picture, path: Path) -> None:
+        try:
+            picture.set_paintable(
+                Gdk.Texture.new_from_file(Gio.File.new_for_path(str(path)))
+            )
+        except Exception:
+            return
+
+    def _generate_thumbnail_file(self, path: Path) -> Path | None:
+        if not self.config:
+            return None
+        thumbnail_path = self._thumbnail_cache_path(path)
+        if thumbnail_path.exists():
+            return thumbnail_path
 
         width, height = self._thumbnail_dimensions()
         try:
             pixbuf = self._render_thumbnail(path, width, height)
             pixbuf.savev(str(thumbnail_path), "png", [], [])
-            return Gdk.Texture.new_for_pixbuf(pixbuf)
+            return thumbnail_path
         except Exception:
-            return Gdk.Texture.new_for_pixbuf(self._empty_pixbuf())
+            return None
 
     def _thumbnail_cache_path(self, path: Path) -> Path:
         stat = path.stat()

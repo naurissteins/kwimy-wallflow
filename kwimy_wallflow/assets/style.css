@@ -29,6 +29,11 @@ flowboxchild:selected .wallflow-card {
   background: rgba(255, 255, 255, 0.12);
 }
 
+.wallflow-thumb-spinner {
+  min-width: 24px;
+  min-height: 24px;
+}
+
 .wallflow-card:hover {
     border-color: rgba(255, 255, 255, 0.2);
     background: rgba(255, 255, 255, 0.08);
