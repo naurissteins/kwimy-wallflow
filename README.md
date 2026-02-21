@@ -19,6 +19,20 @@ sudo pacman -S python python-gobject gtk4 libadwaita
 python -m kwimy_wallflow
 ```
 
+## Daemon Mode
+Keep the app in memory for instant open:
+```
+kwimy-wallflow --daemon
+```
+
+Toggle or control the window from another terminal:
+```
+kwimy-wallflow --toggle
+kwimy-wallflow --show
+kwimy-wallflow --hide
+kwimy-wallflow --quit
+```
+
 ## Configuration
 Config file path:
 - `~/.config/kwimy-wallflow/config.json`

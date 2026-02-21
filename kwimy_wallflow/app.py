@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import subprocess
 from pathlib import Path
 
@@ -21,7 +22,10 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
     LANDSCAPE_RATIO = 9 / 16
 
     def __init__(self) -> None:
-        super().__init__(application_id=APP_ID, flags=Gio.ApplicationFlags.FLAGS_NONE)
+        super().__init__(
+            application_id=APP_ID,
+            flags=Gio.ApplicationFlags.HANDLES_COMMAND_LINE,
+        )
         self.config: AppConfig | None = None
         self._wallpaper_paths: list[Path] = []
         self._load_index = 0
@@ -30,14 +34,81 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._flowbox: Gtk.FlowBox | None = None
         self._scroller: Gtk.ScrolledWindow | None = None
         self._toast_overlay: Adw.ToastOverlay | None = None
+        self._window: Adw.ApplicationWindow | None = None
         self._scroll_direction: str = "vertical"
+        self._daemon_enabled = False
+        self._daemon_start_hidden = False
+        self._pending_action: str | None = None
+        self._quit_requested = False
 
     def do_startup(self) -> None:
         Adw.Application.do_startup(self)
         self._load_css()
 
+    def do_command_line(self, command_line: Gio.ApplicationCommandLine) -> int:
+        args = list(command_line.get_arguments())
+        opts = self._parse_args([str(a) for a in args[1:]])
+
+        if opts.daemon:
+            self._daemon_enabled = True
+            self._daemon_start_hidden = True
+            self.hold()
+
+        if opts.quit:
+            self._quit_requested = True
+
+        if opts.toggle:
+            self._pending_action = "toggle"
+        elif opts.show:
+            self._pending_action = "show"
+        elif opts.hide:
+            self._pending_action = "hide"
+
+        self.activate()
+        return 0
+
     def do_activate(self) -> None:
         Adw.Application.do_activate(self)
+        self._ensure_window()
+
+        if self._quit_requested:
+            self.quit()
+            return
+
+        if self._pending_action == "toggle":
+            if self._window and self._window.get_visible():
+                self._window.hide()
+            else:
+                self._show_window()
+            self._pending_action = None
+            return
+        if self._pending_action == "show":
+            self._show_window()
+            self._pending_action = None
+            return
+        if self._pending_action == "hide":
+            if self._window:
+                self._window.hide()
+            self._pending_action = None
+            return
+
+        if self._daemon_start_hidden:
+            self._daemon_start_hidden = False
+            return
+
+        self._show_window()
+
+    def _show_window(self) -> None:
+        if not self._window:
+            return
+        self._window.present()
+        if self._flowbox:
+            self._flowbox.grab_focus()
+
+    def _ensure_window(self) -> None:
+        if self._window:
+            return
+
         self.config = load_config()
         self._scroll_direction = (
             self.config.scroll_direction or "vertical"
@@ -52,6 +123,8 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         )
         window.set_title("Kwimy Wallflow")
         window.set_decorated(bool(self.config.window_decorations))
+        window.connect("close-request", self._on_close_request)
+        self._window = window
 
         toolbar_view = Adw.ToolbarView()
         if self.config.window_decorations:
@@ -88,14 +161,29 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
 
         toolbar_view.set_content(toast_overlay)
         window.set_content(toolbar_view)
-        window.present()
-        flowbox.grab_focus()
-        self._init_thumbnail_loader()
 
+        self._init_thumbnail_loader()
         wallpaper_dir = Path(self.config.wallpaper_dir).expanduser()
         self._wallpaper_paths = list_wallpapers(wallpaper_dir)
         self._load_index = 0
         GLib.idle_add(self._load_next_batch)
+
+    def _on_close_request(self, _window: Gtk.Window) -> bool:
+        if self._daemon_enabled:
+            if self._window:
+                self._window.hide()
+            return True
+        return False
+
+    def _parse_args(self, argv: list[str]) -> argparse.Namespace:
+        parser = argparse.ArgumentParser(add_help=False)
+        parser.add_argument("--daemon", action="store_true")
+        parser.add_argument("--toggle", action="store_true")
+        parser.add_argument("--show", action="store_true")
+        parser.add_argument("--hide", action="store_true")
+        parser.add_argument("--quit", action="store_true")
+        opts, _ = parser.parse_known_args(argv)
+        return opts
 
     def _load_css(self) -> None:
         css_path = ASSETS_DIR / "style.css"
@@ -150,5 +238,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
 
 
 def main() -> int:
+    import sys
+
     app = WallflowApp()
-    return app.run([])
+    return app.run(sys.argv)
