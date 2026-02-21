@@ -37,7 +37,9 @@ class WallflowApp(Adw.Application):
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
         window = Adw.ApplicationWindow(application=self)
-        window.set_default_size(900, 600)
+        window.set_default_size(
+            int(self.config.window_width), int(self.config.window_height)
+        )
         window.set_title("Kwimy Wallflow")
         window.set_decorated(bool(self.config.window_decorations))
 
