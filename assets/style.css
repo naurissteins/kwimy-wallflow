@@ -1,0 +1,33 @@
+window {
+  background: #0f1216;
+  color: #e7e7e7;
+}
+
+.wallflow-header {
+  padding: 8px 12px;
+  background: linear-gradient(90deg, #141922, #0f1216 60%);
+}
+
+.wallflow-grid {
+  padding: 16px;
+}
+
+.wallflow-card {
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 8px;
+}
+
+.wallflow-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.wallflow-thumb {
+  border-radius: 10px;
+}
+
+.wallflow-label {
+  font-size: 12px;
+}

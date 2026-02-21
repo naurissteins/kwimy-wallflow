@@ -1,0 +1,58 @@
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from pathlib import Path
+
+from .paths import CONFIG_DIR
+
+
+@dataclass
+class AppConfig:
+    wallpaper_dir: str
+    matugen_mode: str
+    thumbnail_size: int
+    batch_size: int
+
+
+DEFAULT_CONFIG = AppConfig(
+    wallpaper_dir="~/Pictures/Wallpapers",
+    matugen_mode="dark",
+    thumbnail_size=256,
+    batch_size=16,
+)
+
+
+CONFIG_PATH = CONFIG_DIR / "config.json"
+
+
+def ensure_config() -> None:
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    if not CONFIG_PATH.exists():
+        write_config(DEFAULT_CONFIG)
+
+
+def load_config() -> AppConfig:
+    ensure_config()
+    try:
+        data = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return DEFAULT_CONFIG
+
+    return AppConfig(
+        wallpaper_dir=str(data.get("wallpaper_dir", DEFAULT_CONFIG.wallpaper_dir)),
+        matugen_mode=str(data.get("matugen_mode", DEFAULT_CONFIG.matugen_mode)),
+        thumbnail_size=int(data.get("thumbnail_size", DEFAULT_CONFIG.thumbnail_size)),
+        batch_size=int(data.get("batch_size", DEFAULT_CONFIG.batch_size)),
+    )
+
+
+def write_config(config: AppConfig) -> None:
+    CONFIG_DIR.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "wallpaper_dir": config.wallpaper_dir,
+        "matugen_mode": config.matugen_mode,
+        "thumbnail_size": config.thumbnail_size,
+        "batch_size": config.batch_size,
+    }
+    CONFIG_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
