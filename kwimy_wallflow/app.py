@@ -150,9 +150,7 @@ class WallflowApp(Adw.Application):
 
         width, height = self._thumbnail_dimensions()
         try:
-            pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(
-                str(path), width, height, True
-            )
+            pixbuf = self._render_thumbnail(path, width, height)
             pixbuf.savev(str(thumbnail_path), "png", [], [])
             return Gdk.Texture.new_for_pixbuf(pixbuf)
         except Exception:
@@ -177,6 +175,31 @@ class WallflowApp(Adw.Application):
     @staticmethod
     def _empty_pixbuf() -> GdkPixbuf.Pixbuf:
         return GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, 1, 1)
+
+    @staticmethod
+    def _render_thumbnail(path: Path, width: int, height: int) -> GdkPixbuf.Pixbuf:
+        base = GdkPixbuf.Pixbuf.new_from_file(str(path))
+        src_w = base.get_width()
+        src_h = base.get_height()
+        if src_w == 0 or src_h == 0:
+            return GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, width, height)
+
+        scale = max(width / src_w, height / src_h)
+        scaled_w = max(1, int(src_w * scale))
+        scaled_h = max(1, int(src_h * scale))
+
+        scaled = base.scale_simple(
+            scaled_w, scaled_h, GdkPixbuf.InterpType.BILINEAR
+        )
+
+        if scaled_w == width and scaled_h == height:
+            return scaled
+
+        offset_x = max(0, (scaled_w - width) // 2)
+        offset_y = max(0, (scaled_h - height) // 2)
+        return GdkPixbuf.Pixbuf.new_subpixbuf(
+            scaled, offset_x, offset_y, width, height
+        )
 
 
 def main() -> int:
