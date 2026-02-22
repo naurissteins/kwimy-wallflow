@@ -1,0 +1,15 @@
+[Unit]
+Description=Kwimy Wallflow daemon
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+Environment=GDK_BACKEND=wayland
+Environment=XDG_RUNTIME_DIR=%t
+Environment=LD_PRELOAD=/usr/lib/libgtk4-layer-shell.so
+ExecStart=%h/.local/bin/kwimy-wallflow --daemon
+Restart=on-failure
+
+[Install]
+WantedBy=default.target

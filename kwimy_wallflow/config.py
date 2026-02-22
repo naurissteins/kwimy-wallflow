@@ -19,6 +19,10 @@ class AppConfig:
     window_width: int
     window_height: int
     scroll_direction: str
+    panel_mode: bool
+    panel_edge: str
+    panel_size: int
+    panel_exclusive_zone: int
 
 
 DEFAULT_CONFIG = AppConfig(
@@ -32,6 +36,10 @@ DEFAULT_CONFIG = AppConfig(
     window_width=900,
     window_height=600,
     scroll_direction="vertical",
+    panel_mode=False,
+    panel_edge="left",
+    panel_size=420,
+    panel_exclusive_zone=-1,
 )
 
 
@@ -44,12 +52,28 @@ def ensure_config() -> None:
         write_config(DEFAULT_CONFIG)
 
 
+def _strip_json_comments(text: str) -> str:
+    lines: list[str] = []
+    for line in text.splitlines():
+        stripped = line.lstrip()
+        if stripped.startswith("//") or stripped.startswith("#"):
+            continue
+        lines.append(line)
+    return "\n".join(lines)
+
+
 def load_config() -> AppConfig:
     ensure_config()
     try:
-        data = json.loads(CONFIG_PATH.read_text(encoding="utf-8"))
+        raw = CONFIG_PATH.read_text(encoding="utf-8")
+        data = json.loads(raw)
     except (OSError, json.JSONDecodeError):
-        return DEFAULT_CONFIG
+        try:
+            raw = CONFIG_PATH.read_text(encoding="utf-8")
+            data = json.loads(_strip_json_comments(raw))
+        except (OSError, json.JSONDecodeError):
+            print("Config parse failed; using defaults")
+            return DEFAULT_CONFIG
 
     return AppConfig(
         wallpaper_dir=str(data.get("wallpaper_dir", DEFAULT_CONFIG.wallpaper_dir)),
@@ -68,6 +92,12 @@ def load_config() -> AppConfig:
         scroll_direction=str(
             data.get("scroll_direction", DEFAULT_CONFIG.scroll_direction)
         ),
+        panel_mode=bool(data.get("panel_mode", DEFAULT_CONFIG.panel_mode)),
+        panel_edge=str(data.get("panel_edge", DEFAULT_CONFIG.panel_edge)),
+        panel_size=int(data.get("panel_size", DEFAULT_CONFIG.panel_size)),
+        panel_exclusive_zone=int(
+            data.get("panel_exclusive_zone", DEFAULT_CONFIG.panel_exclusive_zone)
+        ),
     )
 
 
@@ -84,5 +114,9 @@ def write_config(config: AppConfig) -> None:
         "window_width": config.window_width,
         "window_height": config.window_height,
         "scroll_direction": config.scroll_direction,
+        "panel_mode": config.panel_mode,
+        "panel_edge": config.panel_edge,
+        "panel_size": config.panel_size,
+        "panel_exclusive_zone": config.panel_exclusive_zone,
     }
     CONFIG_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

@@ -9,6 +9,12 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
+try:
+    gi.require_version("Gtk4LayerShell", "1.0")
+    from gi.repository import Gtk4LayerShell as LayerShell  # type: ignore
+except (ImportError, ValueError):
+    LayerShell = None
+
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
 from .config import AppConfig, load_config
@@ -36,6 +42,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._toast_overlay: Adw.ToastOverlay | None = None
         self._window: Adw.ApplicationWindow | None = None
         self._scroll_direction: str = "vertical"
+        self._panel_mode = False
         self._daemon_enabled = False
         self._daemon_start_hidden = False
         self._pending_action: str | None = None
@@ -115,16 +122,38 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         ).strip().lower()
         if self._scroll_direction not in {"vertical", "horizontal"}:
             self._scroll_direction = "vertical"
+        self._panel_mode = bool(self.config.panel_mode and LayerShell is not None)
+        if self._panel_mode and not self._is_wayland():
+            self._panel_mode = False
+            print("Layer-shell requires Wayland; panel_mode disabled")
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
         window = Adw.ApplicationWindow(application=self)
-        window.set_default_size(
-            int(self.config.window_width), int(self.config.window_height)
-        )
+        panel_edge = str(self.config.panel_edge).strip().lower()
+        if panel_edge not in {"left", "right", "top", "bottom"}:
+            panel_edge = "left"
+        panel_size = max(1, int(self.config.panel_size))
+
+        if self._panel_mode:
+            if panel_edge in {"left", "right"}:
+                window.set_default_size(panel_size, int(self.config.window_height))
+            else:
+                window.set_default_size(int(self.config.window_width), panel_size)
+            window.set_decorated(False)
+            window.set_resizable(False)
+        else:
+            window.set_default_size(
+                int(self.config.window_width), int(self.config.window_height)
+            )
         window.set_title("Kwimy Wallflow")
-        window.set_decorated(bool(self.config.window_decorations))
+        if not self._panel_mode:
+            window.set_decorated(bool(self.config.window_decorations))
         window.connect("close-request", self._on_close_request)
         self._window = window
+        if self.config.panel_mode and LayerShell is None:
+            print("gtk4-layer-shell not available; panel_mode disabled")
+        if self._panel_mode:
+            self._apply_layer_shell(window, panel_edge, panel_size)
 
         toolbar_view = Adw.ToolbarView()
         if self.config.window_decorations:
@@ -174,6 +203,67 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
                 self._window.hide()
             return True
         return False
+
+    @staticmethod
+    def _is_wayland() -> bool:
+        display = Gdk.Display.get_default()
+        if not display:
+            return False
+        name = (display.get_name() or "").lower()
+        if "wayland" in name:
+            return True
+        return False
+
+    def _apply_layer_shell(
+        self, window: Gtk.Window, panel_edge: str, panel_size: int
+    ) -> None:
+        if LayerShell is None:
+            return
+        LayerShell.init_for_window(window)
+        try:
+            if hasattr(LayerShell, "is_supported") and not LayerShell.is_supported():
+                print("gtk4-layer-shell reports unsupported; trying anyway")
+        except Exception:
+            pass
+        LayerShell.set_layer(window, LayerShell.Layer.TOP)
+        LayerShell.set_keyboard_mode(window, LayerShell.KeyboardMode.ON_DEMAND)
+        LayerShell.set_exclusive_zone(
+            window, int(self.config.panel_exclusive_zone)
+        )
+
+        LayerShell.set_anchor(window, LayerShell.Edge.LEFT, False)
+        LayerShell.set_anchor(window, LayerShell.Edge.RIGHT, False)
+        LayerShell.set_anchor(window, LayerShell.Edge.TOP, False)
+        LayerShell.set_anchor(window, LayerShell.Edge.BOTTOM, False)
+
+        if panel_edge == "left":
+            LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
+            LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
+            LayerShell.set_anchor(window, LayerShell.Edge.BOTTOM, True)
+            self._set_layer_size(window, panel_size, 0)
+        elif panel_edge == "right":
+            LayerShell.set_anchor(window, LayerShell.Edge.RIGHT, True)
+            LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
+            LayerShell.set_anchor(window, LayerShell.Edge.BOTTOM, True)
+            self._set_layer_size(window, panel_size, 0)
+        elif panel_edge == "top":
+            LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
+            LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
+            LayerShell.set_anchor(window, LayerShell.Edge.RIGHT, True)
+            self._set_layer_size(window, 0, panel_size)
+        else:
+            LayerShell.set_anchor(window, LayerShell.Edge.BOTTOM, True)
+            LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
+            LayerShell.set_anchor(window, LayerShell.Edge.RIGHT, True)
+            self._set_layer_size(window, 0, panel_size)
+
+    def _set_layer_size(self, window: Gtk.Window, width: int, height: int) -> None:
+        if LayerShell is None:
+            return
+        try:
+            LayerShell.set_size(window, int(width), int(height))
+        except Exception:
+            return
 
     def _parse_args(self, argv: list[str]) -> argparse.Namespace:
         parser = argparse.ArgumentParser(add_help=False)

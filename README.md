@@ -11,7 +11,7 @@ A minimal GTK4 + libadwaita wallpaper picker that runs `matugen` on click and ap
 
 ## Install Dependencies
 ```
-sudo pacman -S python python-gobject gtk4 libadwaita
+sudo pacman -S python python-gobject gtk4 libadwaita gtk-layer-shell
 ```
 
 ## Run (from repo)
@@ -33,6 +33,30 @@ kwimy-wallflow --hide
 kwimy-wallflow --quit
 ```
 
+## Panel Mode (Layer Shell)
+Enable a panel-style window (left/right/top/bottom) using `gtk-layer-shell`:
+```
+"panel_mode": true,
+"panel_edge": "left",
+"panel_size": 420
+```
+
+## Autostart (systemd --user)
+```
+mkdir -p ~/.config/systemd/user
+cp systemd/kwimy-wallflow.service ~/.config/systemd/user/
+systemctl --user daemon-reload
+systemctl --user enable --now kwimy-wallflow.service
+
+systemctl --user daemon-reload
+systemctl --user restart kwimy-wallflow.service
+```
+
+If you installed via a local venv, update `ExecStart` in the service file to point at your venv binary.
+If you are on Wayland, the service sets `GDK_BACKEND=wayland` to ensure layer-shell works.
+If your compositor uses a different `WAYLAND_DISPLAY`, update it in `systemd/kwimy-wallflow.service`.
+If you see “Failed to initialize layer surface”, set `LD_PRELOAD=/usr/lib/libgtk4-layer-shell.so`.
+
 ## Configuration
 Config file path:
 - `~/.config/kwimy-wallflow/config.json`
@@ -49,7 +73,11 @@ Default config:
   "show_filenames": false,
   "window_width": 900,
   "window_height": 600,
-  "scroll_direction": "vertical"
+  "scroll_direction": "vertical",
+  "panel_mode": false,
+  "panel_edge": "left",
+  "panel_size": 420,
+  "panel_exclusive_zone": -1
 }
 ```
 
@@ -63,3 +91,7 @@ Edit `assets/style.css` to change background, borders, and typography.
   - `landscape` (default): 16:9
   - `square`: 1:1
 - `scroll_direction` controls whether the grid scrolls vertically or horizontally. Use `vertical` or `horizontal`.
+- `panel_mode` enables layer-shell mode (requires `gtk-layer-shell` with Gtk4 typelibs).
+- `panel_edge` can be `left`, `right`, `top`, `bottom`.
+- `panel_size` is the fixed width/height used for panel mode.
+- `panel_exclusive_zone` controls reserved space (`-1` = none).
