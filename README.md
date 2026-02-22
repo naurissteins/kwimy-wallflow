@@ -80,6 +80,9 @@ Default config:
   "window_height": 600,
   "scroll_direction": "vertical",
   "mouse_enabled": true,
+  "backdrop_enabled": false,
+  "backdrop_opacity": 0.0,
+  "backdrop_click_to_close": true,
   "content_inset_top": 0,
   "content_inset_bottom": 0,
   "content_inset_left": 0,
@@ -107,6 +110,9 @@ Edit `assets/style.css` to change background, borders, and typography.
   - `square`: 1:1
 - `scroll_direction` controls whether the grid scrolls vertically or horizontally. Use `vertical` or `horizontal`.
 - `mouse_enabled` toggles pointer interaction (click/hover/scroll).
+- `backdrop_enabled` shows a full-screen transparent layer behind the panel.
+- `backdrop_opacity` controls the backdrop tint (0.0 to 1.0). Note: if click-to-close is enabled, values at 0.0 are clamped to 0.01 so the compositor still delivers input. **(Wayland compositor fully transparent surfaces often don’t receive input events)** I will update when I will find a solution.
+- `backdrop_click_to_close` closes the panel when clicking outside it.
 - `content_inset_top` / `content_inset_bottom` add fixed padding inside the window while scrolling.
 - `content_inset_left` / `content_inset_right` add fixed padding for horizontal inset.
 - `panel_mode` enables layer-shell mode (requires `gtk-layer-shell` with Gtk4 typelibs).

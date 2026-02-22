@@ -54,7 +54,11 @@ class NavigationMixin:
         if not window:
             return
         if getattr(self, "_daemon_enabled", False):
-            window.hide()
+            hide = getattr(self, "_hide_window", None)
+            if callable(hide):
+                hide()
+            else:
+                window.hide()
         else:
             window.close()
 

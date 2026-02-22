@@ -59,12 +59,16 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._panel_size: int = 420
         self._panel_fit: bool = True
         self._panel_margins: tuple[int, int, int, int] = (0, 0, 0, 0)
+        self._backdrop_enabled = False
+        self._backdrop_opacity = 0.0
+        self._backdrop_click_to_close = True
         self._daemon_enabled = False
         self._daemon_start_hidden = False
         self._pending_action: str | None = None
         self._quit_requested = False
         self._ipc_socket: socket.socket | None = None
         self._ipc_watch_id: int | None = None
+        self._backdrop_window: Gtk.Window | None = None
 
     def do_startup(self) -> None:
         Adw.Application.do_startup(self)
@@ -106,7 +110,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
 
         if self._pending_action == "toggle":
             if self._window and self._window.get_visible():
-                self._window.hide()
+                self._hide_window()
             else:
                 self._show_window()
             self._pending_action = None
@@ -116,8 +120,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             self._pending_action = None
             return
         if self._pending_action == "hide":
-            if self._window:
-                self._window.hide()
+            self._hide_window()
             self._pending_action = None
             return
 
@@ -132,11 +135,20 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             return
         if self._window.get_visible():
             return
+        if self._panel_mode and self._backdrop_enabled:
+            self._show_backdrop()
         self._window.present()
         if self._flowbox:
             self._flowbox.grab_focus()
         if self._panel_mode:
             GLib.idle_add(self._refresh_layer_shell)
+
+    def _show_backdrop(self) -> None:
+        if not self._backdrop_window:
+            return
+        if self._backdrop_window.get_visible():
+            return
+        self._backdrop_window.present()
 
     def _refresh_layer_shell(self) -> bool:
         if not self._panel_mode or not self._window:
@@ -196,8 +208,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         GLib.idle_add(self._show_window)
 
     def _on_sig_hide(self, _signum, _frame) -> None:
-        if self._window:
-            GLib.idle_add(self._window.hide)
+        GLib.idle_add(self._hide_window)
 
     def _on_sig_toggle(self, _signum, _frame) -> None:
         GLib.idle_add(self._toggle_window)
@@ -226,8 +237,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             if command == "show":
                 GLib.idle_add(self._show_window)
             elif command == "hide":
-                if self._window:
-                    GLib.idle_add(self._window.hide)
+                GLib.idle_add(self._hide_window)
             elif command == "toggle":
                 GLib.idle_add(self._toggle_window)
             elif command == "quit":
@@ -238,9 +248,15 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         if not self._window:
             return
         if self._window.get_visible():
-            self._window.hide()
+            self._hide_window()
         else:
             self._show_window()
+
+    def _hide_window(self) -> None:
+        if self._window:
+            self._window.hide()
+        if self._backdrop_window:
+            self._backdrop_window.hide()
 
 
     def _ensure_window(self) -> None:
@@ -275,6 +291,18 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._panel_size = panel_size
         self._panel_fit = panel_fit
         self._panel_margins = panel_margins
+        self._backdrop_enabled = bool(self.config.backdrop_enabled)
+        self._backdrop_opacity = max(
+            0.0, min(1.0, float(self.config.backdrop_opacity))
+        )
+        self._backdrop_click_to_close = bool(self.config.backdrop_click_to_close)
+        if (
+            self._backdrop_enabled
+            and self._backdrop_click_to_close
+            and self._backdrop_opacity <= 0.0
+        ):
+            # Keep a tiny alpha so the compositor still delivers input.
+            self._backdrop_opacity = 0.01
         if self._panel_mode:
             monitor_width, monitor_height = self._get_primary_monitor_size()
             target_width, target_height = self._panel_target_size(
@@ -299,6 +327,8 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._window = window
         if self.config.panel_mode and LayerShell is None:
             self._log("gtk4-layer-shell not available; panel_mode disabled")
+        if self._panel_mode and self._backdrop_enabled:
+            self._ensure_backdrop_window()
         if self._panel_mode:
             self._apply_layer_shell(
                 window, panel_edge, panel_size, panel_fit, panel_margins
@@ -392,9 +422,9 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
 
     def _on_close_request(self, _window: Gtk.Window) -> bool:
         if self._daemon_enabled:
-            if self._window:
-                self._window.hide()
+            self._hide_window()
             return True
+        self._hide_window()
         return False
 
     @staticmethod
@@ -496,6 +526,50 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             else:
                 self._set_layer_size(window, target_width, target_height)
         self._apply_panel_size_hint(window, target_width, target_height)
+
+    def _ensure_backdrop_window(self) -> None:
+        if self._backdrop_window:
+            return
+        backdrop = Adw.ApplicationWindow(application=self)
+        backdrop.set_title("Kwimy Wallflow Backdrop")
+        backdrop.set_decorated(False)
+        backdrop.set_resizable(False)
+        backdrop.set_opacity(self._backdrop_opacity)
+        backdrop.add_css_class("wallflow-backdrop")
+        box = Gtk.Box()
+        box.set_hexpand(True)
+        box.set_vexpand(True)
+        box.set_can_target(True)
+        backdrop.set_content(box)
+        if self._backdrop_click_to_close:
+            click = Gtk.GestureClick()
+            click.connect("pressed", self._on_backdrop_pressed)
+            box.add_controller(click)
+        self._backdrop_window = backdrop
+        self._apply_backdrop_layer_shell(backdrop)
+
+    def _apply_backdrop_layer_shell(self, window: Gtk.Window) -> None:
+        if LayerShell is None:
+            return
+        LayerShell.init_for_window(window)
+        try:
+            LayerShell.set_namespace(window, "kwimy-wallflow-backdrop")
+        except Exception:
+            pass
+        LayerShell.set_layer(window, LayerShell.Layer.TOP)
+        LayerShell.set_keyboard_mode(window, LayerShell.KeyboardMode.NONE)
+        LayerShell.set_exclusive_zone(window, -1)
+        LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
+        LayerShell.set_anchor(window, LayerShell.Edge.RIGHT, True)
+        LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
+        LayerShell.set_anchor(window, LayerShell.Edge.BOTTOM, True)
+        monitor_width, monitor_height = self._get_primary_monitor_size()
+        if monitor_width and monitor_height:
+            self._set_layer_size(window, monitor_width, monitor_height)
+        self._apply_panel_size_hint(window, monitor_width, monitor_height)
+
+    def _on_backdrop_pressed(self, *_args) -> None:
+        self._hide_window()
 
     def _set_layer_size(self, window: Gtk.Window, width: int, height: int) -> None:
         if LayerShell is None:

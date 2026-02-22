@@ -20,6 +20,9 @@ class AppConfig:
     window_height: int
     scroll_direction: str
     mouse_enabled: bool
+    backdrop_enabled: bool
+    backdrop_opacity: float
+    backdrop_click_to_close: bool
     content_inset_top: int
     content_inset_bottom: int
     content_inset_left: int
@@ -47,6 +50,9 @@ DEFAULT_CONFIG = AppConfig(
     window_height=600,
     scroll_direction="vertical",
     mouse_enabled=True,
+    backdrop_enabled=False,
+    backdrop_opacity=0.0,
+    backdrop_click_to_close=True,
     content_inset_top=0,
     content_inset_bottom=0,
     content_inset_left=0,
@@ -113,6 +119,18 @@ def load_config() -> AppConfig:
             data.get("scroll_direction", DEFAULT_CONFIG.scroll_direction)
         ),
         mouse_enabled=bool(data.get("mouse_enabled", DEFAULT_CONFIG.mouse_enabled)),
+        backdrop_enabled=bool(
+            data.get("backdrop_enabled", DEFAULT_CONFIG.backdrop_enabled)
+        ),
+        backdrop_opacity=float(
+            data.get("backdrop_opacity", DEFAULT_CONFIG.backdrop_opacity)
+        ),
+        backdrop_click_to_close=bool(
+            data.get(
+                "backdrop_click_to_close",
+                DEFAULT_CONFIG.backdrop_click_to_close,
+            )
+        ),
         content_inset_top=int(
             data.get("content_inset_top", DEFAULT_CONFIG.content_inset_top)
         ),
@@ -163,6 +181,9 @@ def write_config(config: AppConfig) -> None:
         "window_height": config.window_height,
         "scroll_direction": config.scroll_direction,
         "mouse_enabled": config.mouse_enabled,
+        "backdrop_enabled": config.backdrop_enabled,
+        "backdrop_opacity": config.backdrop_opacity,
+        "backdrop_click_to_close": config.backdrop_click_to_close,
         "content_inset_top": config.content_inset_top,
         "content_inset_bottom": config.content_inset_bottom,
         "content_inset_left": config.content_inset_left,

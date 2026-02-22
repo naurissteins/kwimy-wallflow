@@ -6,6 +6,11 @@ window {
     border-radius: 15px;
 }
 
+.wallflow-backdrop {
+    background: rgba(0, 0, 0, 1);
+    border-radius: 0;
+}
+
 .wallflow-header {
     padding: 8px 12px;
     background: linear-gradient(90deg, #141922, #0f1216 60%);
