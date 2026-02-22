@@ -20,6 +20,10 @@ class AppConfig:
     window_height: int
     scroll_direction: str
     mouse_enabled: bool
+    content_inset_top: int
+    content_inset_bottom: int
+    content_inset_left: int
+    content_inset_right: int
     panel_mode: bool
     panel_edge: str
     panel_size: int
@@ -43,6 +47,10 @@ DEFAULT_CONFIG = AppConfig(
     window_height=600,
     scroll_direction="vertical",
     mouse_enabled=True,
+    content_inset_top=0,
+    content_inset_bottom=0,
+    content_inset_left=0,
+    content_inset_right=0,
     panel_mode=False,
     panel_edge="left",
     panel_size=420,
@@ -105,6 +113,18 @@ def load_config() -> AppConfig:
             data.get("scroll_direction", DEFAULT_CONFIG.scroll_direction)
         ),
         mouse_enabled=bool(data.get("mouse_enabled", DEFAULT_CONFIG.mouse_enabled)),
+        content_inset_top=int(
+            data.get("content_inset_top", DEFAULT_CONFIG.content_inset_top)
+        ),
+        content_inset_bottom=int(
+            data.get("content_inset_bottom", DEFAULT_CONFIG.content_inset_bottom)
+        ),
+        content_inset_left=int(
+            data.get("content_inset_left", DEFAULT_CONFIG.content_inset_left)
+        ),
+        content_inset_right=int(
+            data.get("content_inset_right", DEFAULT_CONFIG.content_inset_right)
+        ),
         panel_mode=bool(data.get("panel_mode", DEFAULT_CONFIG.panel_mode)),
         panel_edge=str(data.get("panel_edge", DEFAULT_CONFIG.panel_edge)),
         panel_size=int(data.get("panel_size", DEFAULT_CONFIG.panel_size)),
@@ -143,6 +163,10 @@ def write_config(config: AppConfig) -> None:
         "window_height": config.window_height,
         "scroll_direction": config.scroll_direction,
         "mouse_enabled": config.mouse_enabled,
+        "content_inset_top": config.content_inset_top,
+        "content_inset_bottom": config.content_inset_bottom,
+        "content_inset_left": config.content_inset_left,
+        "content_inset_right": config.content_inset_right,
         "panel_mode": config.panel_mode,
         "panel_edge": config.panel_edge,
         "panel_size": config.panel_size,

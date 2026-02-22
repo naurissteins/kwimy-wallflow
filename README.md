@@ -80,6 +80,10 @@ Default config:
   "window_height": 600,
   "scroll_direction": "vertical",
   "mouse_enabled": true,
+  "content_inset_top": 0,
+  "content_inset_bottom": 0,
+  "content_inset_left": 0,
+  "content_inset_right": 0,
   "panel_mode": false,
   "panel_edge": "left",
   "panel_size": 420,
@@ -103,6 +107,8 @@ Edit `assets/style.css` to change background, borders, and typography.
   - `square`: 1:1
 - `scroll_direction` controls whether the grid scrolls vertically or horizontally. Use `vertical` or `horizontal`.
 - `mouse_enabled` toggles pointer interaction (click/hover/scroll).
+- `content_inset_top` / `content_inset_bottom` add fixed padding inside the window while scrolling.
+- `content_inset_left` / `content_inset_right` add fixed padding for horizontal inset.
 - `panel_mode` enables layer-shell mode (requires `gtk-layer-shell` with Gtk4 typelibs).
 - `panel_edge` can be `left`, `right`, `top`, `bottom`.
 - `panel_size` is the fixed width/height used for panel mode.

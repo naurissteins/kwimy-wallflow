@@ -360,6 +360,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
 
         scroller = Gtk.ScrolledWindow()
         scroller.set_child(flowbox)
+        scroller.add_css_class("wallflow-scroller")
         if self._scroll_direction == "horizontal":
             scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER)
         else:
@@ -370,6 +371,11 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             flowbox.set_activate_on_single_click(False)
             flowbox.set_can_target(False)
             scroller.set_can_target(False)
+        if self.config:
+            scroller.set_margin_top(max(0, int(self.config.content_inset_top)))
+            scroller.set_margin_bottom(max(0, int(self.config.content_inset_bottom)))
+            scroller.set_margin_start(max(0, int(self.config.content_inset_left)))
+            scroller.set_margin_end(max(0, int(self.config.content_inset_right)))
 
         toast_overlay = Adw.ToastOverlay()
         toast_overlay.set_child(scroller)
