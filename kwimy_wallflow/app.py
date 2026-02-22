@@ -9,11 +9,13 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
+LAYER_SHELL_ERROR = None
 try:
     gi.require_version("Gtk4LayerShell", "1.0")
     from gi.repository import Gtk4LayerShell as LayerShell  # type: ignore
-except (ImportError, ValueError):
+except (ImportError, ValueError) as exc:
     LayerShell = None
+    LAYER_SHELL_ERROR = str(exc)
 
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
@@ -43,6 +45,9 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._window: Adw.ApplicationWindow | None = None
         self._scroll_direction: str = "vertical"
         self._panel_mode = False
+        self._panel_edge: str = "left"
+        self._panel_size: int = 420
+        self._panel_fit: bool = True
         self._daemon_enabled = False
         self._daemon_start_hidden = False
         self._pending_action: str | None = None
@@ -51,6 +56,8 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
     def do_startup(self) -> None:
         Adw.Application.do_startup(self)
         self._load_css()
+        if LAYER_SHELL_ERROR:
+            self._log(f"gtk4-layer-shell import error: {LAYER_SHELL_ERROR}")
 
     def do_command_line(self, command_line: Gio.ApplicationCommandLine) -> int:
         args = list(command_line.get_arguments())
@@ -111,6 +118,16 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._window.present()
         if self._flowbox:
             self._flowbox.grab_focus()
+        if self._panel_mode:
+            GLib.idle_add(self._refresh_layer_shell)
+
+    def _refresh_layer_shell(self) -> bool:
+        if not self._panel_mode or not self._window:
+            return False
+        self._apply_layer_shell(
+            self._window, self._panel_edge, self._panel_size, self._panel_fit
+        )
+        return False
 
     def _ensure_window(self) -> None:
         if self._window:
@@ -125,7 +142,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._panel_mode = bool(self.config.panel_mode and LayerShell is not None)
         if self._panel_mode and not self._is_wayland():
             self._panel_mode = False
-            print("Layer-shell requires Wayland; panel_mode disabled")
+            self._log("Layer-shell requires Wayland; panel_mode disabled")
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
         window = Adw.ApplicationWindow(application=self)
@@ -133,12 +150,20 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         if panel_edge not in {"left", "right", "top", "bottom"}:
             panel_edge = "left"
         panel_size = max(1, int(self.config.panel_size))
-
+        panel_fit = bool(self.config.panel_fit_to_screen)
+        self._panel_edge = panel_edge
+        self._panel_size = panel_size
+        self._panel_fit = panel_fit
         if self._panel_mode:
-            if panel_edge in {"left", "right"}:
-                window.set_default_size(panel_size, int(self.config.window_height))
-            else:
-                window.set_default_size(int(self.config.window_width), panel_size)
+            monitor_width, monitor_height = self._get_primary_monitor_size()
+            target_width, target_height = self._panel_target_size(
+                panel_edge,
+                panel_size,
+                panel_fit,
+                monitor_width,
+                monitor_height,
+            )
+            window.set_default_size(target_width, target_height)
             window.set_decorated(False)
             window.set_resizable(False)
         else:
@@ -151,9 +176,41 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         window.connect("close-request", self._on_close_request)
         self._window = window
         if self.config.panel_mode and LayerShell is None:
-            print("gtk4-layer-shell not available; panel_mode disabled")
+            self._log("gtk4-layer-shell not available; panel_mode disabled")
         if self._panel_mode:
-            self._apply_layer_shell(window, panel_edge, panel_size)
+            self._apply_layer_shell(window, panel_edge, panel_size, panel_fit)
+        if self._panel_mode:
+            self._log(
+                "panel_mode=%s edge=%s size=%s fit=%s backend=%s target=%sx%s"
+                % (
+                    self._panel_mode,
+                    panel_edge,
+                    panel_size,
+                    panel_fit,
+                    (
+                        Gdk.Display.get_default().get_name()
+                        if Gdk.Display.get_default()
+                        else "none"
+                    ),
+                    target_width,
+                    target_height,
+                )
+            )
+        else:
+            self._log(
+                "panel_mode=%s edge=%s size=%s fit=%s backend=%s"
+                % (
+                    self._panel_mode,
+                    panel_edge,
+                    panel_size,
+                    panel_fit,
+                    (
+                        Gdk.Display.get_default().get_name()
+                        if Gdk.Display.get_default()
+                        else "none"
+                    ),
+                )
+            )
 
         toolbar_view = Adw.ToolbarView()
         if self.config.window_decorations:
@@ -215,14 +272,24 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         return False
 
     def _apply_layer_shell(
-        self, window: Gtk.Window, panel_edge: str, panel_size: int
+        self, window: Gtk.Window, panel_edge: str, panel_size: int, fit_to_screen: bool
     ) -> None:
         if LayerShell is None:
             return
         LayerShell.init_for_window(window)
         try:
+            LayerShell.set_namespace(window, "kwimy-wallflow")
+        except Exception:
+            pass
+        try:
             if hasattr(LayerShell, "is_supported") and not LayerShell.is_supported():
-                print("gtk4-layer-shell reports unsupported; trying anyway")
+                self._log("gtk4-layer-shell reports unsupported; trying anyway")
+        except Exception:
+            pass
+        self._log("layer_shell init called")
+        try:
+            if hasattr(LayerShell, "is_layer_window"):
+                self._log(f"layer_shell active: {LayerShell.is_layer_window(window)}")
         except Exception:
             pass
         LayerShell.set_layer(window, LayerShell.Layer.TOP)
@@ -236,26 +303,52 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         LayerShell.set_anchor(window, LayerShell.Edge.TOP, False)
         LayerShell.set_anchor(window, LayerShell.Edge.BOTTOM, False)
 
+        monitor_width, monitor_height = self._get_primary_monitor_size()
+        self._log(
+            "layer_shell monitor size: %sx%s" % (monitor_width, monitor_height)
+        )
+
+        target_width, target_height = self._panel_target_size(
+            panel_edge,
+            panel_size,
+            fit_to_screen,
+            monitor_width,
+            monitor_height,
+        )
+
         if panel_edge == "left":
             LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
             LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
-            LayerShell.set_anchor(window, LayerShell.Edge.BOTTOM, True)
-            self._set_layer_size(window, panel_size, 0)
+            if fit_to_screen:
+                LayerShell.set_anchor(window, LayerShell.Edge.BOTTOM, True)
+                self._set_layer_size(window, target_width, target_height)
+            else:
+                self._set_layer_size(window, target_width, target_height)
         elif panel_edge == "right":
             LayerShell.set_anchor(window, LayerShell.Edge.RIGHT, True)
             LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
-            LayerShell.set_anchor(window, LayerShell.Edge.BOTTOM, True)
-            self._set_layer_size(window, panel_size, 0)
+            if fit_to_screen:
+                LayerShell.set_anchor(window, LayerShell.Edge.BOTTOM, True)
+                self._set_layer_size(window, target_width, target_height)
+            else:
+                self._set_layer_size(window, target_width, target_height)
         elif panel_edge == "top":
             LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
             LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
-            LayerShell.set_anchor(window, LayerShell.Edge.RIGHT, True)
-            self._set_layer_size(window, 0, panel_size)
+            if fit_to_screen:
+                LayerShell.set_anchor(window, LayerShell.Edge.RIGHT, True)
+                self._set_layer_size(window, target_width, target_height)
+            else:
+                self._set_layer_size(window, target_width, target_height)
         else:
             LayerShell.set_anchor(window, LayerShell.Edge.BOTTOM, True)
             LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
-            LayerShell.set_anchor(window, LayerShell.Edge.RIGHT, True)
-            self._set_layer_size(window, 0, panel_size)
+            if fit_to_screen:
+                LayerShell.set_anchor(window, LayerShell.Edge.RIGHT, True)
+                self._set_layer_size(window, target_width, target_height)
+            else:
+                self._set_layer_size(window, target_width, target_height)
+        self._apply_panel_size_hint(window, target_width, target_height)
 
     def _set_layer_size(self, window: Gtk.Window, width: int, height: int) -> None:
         if LayerShell is None:
@@ -264,6 +357,55 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             LayerShell.set_size(window, int(width), int(height))
         except Exception:
             return
+
+    @staticmethod
+    def _panel_target_size(
+        panel_edge: str,
+        panel_size: int,
+        fit_to_screen: bool,
+        monitor_width: int,
+        monitor_height: int,
+    ) -> tuple[int, int]:
+        if panel_edge in {"left", "right"}:
+            width = panel_size
+            height = monitor_height if fit_to_screen and monitor_height else 1
+        else:
+            width = monitor_width if fit_to_screen and monitor_width else 1
+            height = panel_size
+        return int(width), int(height)
+
+    @staticmethod
+    def _apply_panel_size_hint(
+        window: Gtk.Window, width: int, height: int
+    ) -> None:
+        if width > 0 and height > 0:
+            try:
+                window.set_default_size(int(width), int(height))
+            except Exception:
+                pass
+            try:
+                window.set_size_request(int(width), int(height))
+            except Exception:
+                pass
+    @staticmethod
+    def _get_primary_monitor_size() -> tuple[int, int]:
+        display = Gdk.Display.get_default()
+        if not display:
+            return 0, 0
+        monitor = None
+        if hasattr(display, "get_primary_monitor"):
+            try:
+                monitor = display.get_primary_monitor()
+            except Exception:
+                monitor = None
+        if monitor is None:
+            monitors = display.get_monitors()
+            if monitors and monitors.get_n_items() > 0:
+                monitor = monitors.get_item(0)
+        if monitor is None:
+            return 0, 0
+        geometry = monitor.get_geometry()
+        return int(geometry.width), int(geometry.height)
 
     def _parse_args(self, argv: list[str]) -> argparse.Namespace:
         parser = argparse.ArgumentParser(add_help=False)
@@ -321,6 +463,10 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         if not self._toast_overlay:
             return
         self._toast_overlay.add_toast(Adw.Toast.new(message))
+
+    @staticmethod
+    def _log(message: str) -> None:
+        print(message, flush=True)
 
     def do_shutdown(self) -> None:
         self._shutdown_thumbnail_loader()

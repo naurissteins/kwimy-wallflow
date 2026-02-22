@@ -56,6 +56,8 @@ If you installed via a local venv, update `ExecStart` in the service file to poi
 If you are on Wayland, the service sets `GDK_BACKEND=wayland` to ensure layer-shell works.
 If your compositor uses a different `WAYLAND_DISPLAY`, update it in `systemd/kwimy-wallflow.service`.
 If you see “Failed to initialize layer surface”, set `LD_PRELOAD=/usr/lib/libgtk4-layer-shell.so`.
+If `--toggle` opens a new normal window, make sure the service has `DBUS_SESSION_BUS_ADDRESS=unix:path=%t/bus`.
+You can check the service environment with `systemctl --user show kwimy-wallflow.service -p Environment`.
 
 ## Configuration
 Config file path:
@@ -77,7 +79,8 @@ Default config:
   "panel_mode": false,
   "panel_edge": "left",
   "panel_size": 420,
-  "panel_exclusive_zone": -1
+  "panel_exclusive_zone": -1,
+  "panel_fit_to_screen": true
 }
 ```
 
@@ -95,3 +98,4 @@ Edit `assets/style.css` to change background, borders, and typography.
 - `panel_edge` can be `left`, `right`, `top`, `bottom`.
 - `panel_size` is the fixed width/height used for panel mode.
 - `panel_exclusive_zone` controls reserved space (`-1` = none).
+- `panel_fit_to_screen` stretches the panel to the full screen along the long edge.

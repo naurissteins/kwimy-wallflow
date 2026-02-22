@@ -23,6 +23,7 @@ class AppConfig:
     panel_edge: str
     panel_size: int
     panel_exclusive_zone: int
+    panel_fit_to_screen: bool
 
 
 DEFAULT_CONFIG = AppConfig(
@@ -40,6 +41,7 @@ DEFAULT_CONFIG = AppConfig(
     panel_edge="left",
     panel_size=420,
     panel_exclusive_zone=-1,
+    panel_fit_to_screen=True,
 )
 
 
@@ -98,6 +100,9 @@ def load_config() -> AppConfig:
         panel_exclusive_zone=int(
             data.get("panel_exclusive_zone", DEFAULT_CONFIG.panel_exclusive_zone)
         ),
+        panel_fit_to_screen=bool(
+            data.get("panel_fit_to_screen", DEFAULT_CONFIG.panel_fit_to_screen)
+        ),
     )
 
 
@@ -118,5 +123,6 @@ def write_config(config: AppConfig) -> None:
         "panel_edge": config.panel_edge,
         "panel_size": config.panel_size,
         "panel_exclusive_zone": config.panel_exclusive_zone,
+        "panel_fit_to_screen": config.panel_fit_to_screen,
     }
     CONFIG_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
