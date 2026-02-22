@@ -19,6 +19,7 @@ class AppConfig:
     window_width: int
     window_height: int
     scroll_direction: str
+    mouse_enabled: bool
     panel_mode: bool
     panel_edge: str
     panel_size: int
@@ -41,6 +42,7 @@ DEFAULT_CONFIG = AppConfig(
     window_width=900,
     window_height=600,
     scroll_direction="vertical",
+    mouse_enabled=True,
     panel_mode=False,
     panel_edge="left",
     panel_size=420,
@@ -102,6 +104,7 @@ def load_config() -> AppConfig:
         scroll_direction=str(
             data.get("scroll_direction", DEFAULT_CONFIG.scroll_direction)
         ),
+        mouse_enabled=bool(data.get("mouse_enabled", DEFAULT_CONFIG.mouse_enabled)),
         panel_mode=bool(data.get("panel_mode", DEFAULT_CONFIG.panel_mode)),
         panel_edge=str(data.get("panel_edge", DEFAULT_CONFIG.panel_edge)),
         panel_size=int(data.get("panel_size", DEFAULT_CONFIG.panel_size)),
@@ -139,6 +142,7 @@ def write_config(config: AppConfig) -> None:
         "window_width": config.window_width,
         "window_height": config.window_height,
         "scroll_direction": config.scroll_direction,
+        "mouse_enabled": config.mouse_enabled,
         "panel_mode": config.panel_mode,
         "panel_edge": config.panel_edge,
         "panel_size": config.panel_size,

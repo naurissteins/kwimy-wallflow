@@ -63,6 +63,9 @@ class ThumbnailMixin:
         child = Gtk.FlowBoxChild()
         child.set_child(box)
         child.wallpaper_path = str(path)
+        if self.config and not self.config.mouse_enabled:
+            child.set_can_target(False)
+            box.set_can_target(False)
 
         if not cached:
             spinner.set_visible(True)

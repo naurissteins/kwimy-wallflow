@@ -77,6 +77,7 @@ Default config:
   "window_width": 900,
   "window_height": 600,
   "scroll_direction": "vertical",
+  "mouse_enabled": true,
   "panel_mode": false,
   "panel_edge": "left",
   "panel_size": 420,
@@ -99,6 +100,7 @@ Edit `assets/style.css` to change background, borders, and typography.
   - `landscape` (default): 16:9
   - `square`: 1:1
 - `scroll_direction` controls whether the grid scrolls vertically or horizontally. Use `vertical` or `horizontal`.
+- `mouse_enabled` toggles pointer interaction (click/hover/scroll).
 - `panel_mode` enables layer-shell mode (requires `gtk-layer-shell` with Gtk4 typelibs).
 - `panel_edge` can be `left`, `right`, `top`, `bottom`.
 - `panel_size` is the fixed width/height used for panel mode.

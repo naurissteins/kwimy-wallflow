@@ -258,6 +258,11 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         self._scroller = scroller
 
+        if self.config and not self.config.mouse_enabled:
+            flowbox.set_activate_on_single_click(False)
+            flowbox.set_can_target(False)
+            scroller.set_can_target(False)
+
         toast_overlay = Adw.ToastOverlay()
         toast_overlay.set_child(scroller)
         self._toast_overlay = toast_overlay
