@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import subprocess
 from pathlib import Path
 
@@ -444,6 +445,9 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         if not self.config:
             return
         try:
+            env = os.environ.copy()
+            env.pop("LD_PRELOAD", None)
+            env.pop("GDK_BACKEND", None)
             subprocess.Popen(
                 [
                     "matugen",
@@ -453,7 +457,8 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
                     self.config.matugen_mode,
                     "--source-color-index",
                     "0",
-                ]
+                ],
+                env=env,
             )
             self._show_toast(f"Applied {path.name}")
         except FileNotFoundError:
