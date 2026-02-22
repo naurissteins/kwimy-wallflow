@@ -32,6 +32,12 @@ flowboxchild:hover {
     box-shadow: none;
 }
 
+flowboxchild:focus,
+flowboxchild:focus-within {
+    background: transparent;
+    box-shadow: none;
+}
+
 flowboxchild:selected .wallflow-card {
     border-color: rgba(255, 255, 255, 0.35);
     background: rgba(255, 255, 255, 0.12);

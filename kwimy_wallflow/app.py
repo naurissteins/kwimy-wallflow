@@ -345,7 +345,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             toolbar_view.add_top_bar(header)
 
         flowbox = Gtk.FlowBox()
-        flowbox.set_selection_mode(Gtk.SelectionMode.SINGLE)
+        flowbox.set_selection_mode(Gtk.SelectionMode.NONE)
         flowbox.set_activate_on_single_click(True)
         if self._scroll_direction == "horizontal":
             flowbox.set_orientation(Gtk.Orientation.VERTICAL)
