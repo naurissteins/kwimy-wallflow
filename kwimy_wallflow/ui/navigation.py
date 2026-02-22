@@ -38,6 +38,9 @@ class NavigationMixin:
         if keyval in (Gdk.KEY_Right, Gdk.KEY_Left, Gdk.KEY_Up, Gdk.KEY_Down):
             self._move_selection(keyval)
             return True
+        if keyval == Gdk.KEY_Escape:
+            self._close_window()
+            return True
         if keyval == Gdk.KEY_Home:
             self._select_index(0)
             return True
@@ -45,6 +48,15 @@ class NavigationMixin:
             self._select_index(-1)
             return True
         return False
+
+    def _close_window(self) -> None:
+        window = getattr(self, "_window", None)
+        if not window:
+            return
+        if getattr(self, "_daemon_enabled", False):
+            window.hide()
+        else:
+            window.close()
 
     def _activate_selected(self) -> None:
         if not self._selected_child:

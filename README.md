@@ -33,6 +33,8 @@ kwimy-wallflow --hide
 kwimy-wallflow --quit
 ```
 
+If the daemon is running, `--show`/`--hide`/`--toggle`/`--quit` talk to it directly and won’t spawn extra windows.
+
 ## Panel Mode (Layer Shell)
 Enable a panel-style window (left/right/top/bottom) using `gtk-layer-shell`:
 ```

@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import argparse
 import os
+import signal
+import socket
 import subprocess
 from pathlib import Path
 
@@ -21,7 +23,14 @@ except (ImportError, ValueError) as exc:
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
 from .config import AppConfig, load_config
-from .paths import APP_ID, ASSETS_DIR, CACHE_DIR
+from .paths import (
+    APP_ID,
+    ASSETS_DIR,
+    CACHE_DIR,
+    IPC_SOCKET_PATH,
+    PID_FILE_PATH,
+    RUNTIME_DIR,
+)
 from .ui.navigation import NavigationMixin
 from .ui.thumbnails import ThumbnailMixin
 from .wallpapers import list_wallpapers
@@ -54,6 +63,8 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._daemon_start_hidden = False
         self._pending_action: str | None = None
         self._quit_requested = False
+        self._ipc_socket: socket.socket | None = None
+        self._ipc_watch_id: int | None = None
 
     def do_startup(self) -> None:
         Adw.Application.do_startup(self)
@@ -69,6 +80,8 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             self._daemon_enabled = True
             self._daemon_start_hidden = True
             self.hold()
+            self._setup_ipc()
+            self._setup_signal_handlers()
 
         if opts.quit:
             self._quit_requested = True
@@ -117,6 +130,8 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
     def _show_window(self) -> None:
         if not self._window:
             return
+        if self._window.get_visible():
+            return
         self._window.present()
         if self._flowbox:
             self._flowbox.grab_focus()
@@ -134,6 +149,99 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             self._panel_margins,
         )
         return False
+
+    def _setup_ipc(self) -> None:
+        if self._ipc_socket is not None:
+            return
+        try:
+            RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            return
+        try:
+            if IPC_SOCKET_PATH.exists():
+                IPC_SOCKET_PATH.unlink()
+        except OSError:
+            pass
+        try:
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.bind(str(IPC_SOCKET_PATH))
+            sock.listen(5)
+            sock.setblocking(False)
+        except OSError:
+            return
+        self._ipc_socket = sock
+        try:
+            self._ipc_watch_id = GLib.io_add_watch(
+                sock.fileno(), GLib.IO_IN, self._on_ipc_ready
+            )
+        except Exception:
+            self._ipc_watch_id = None
+        self._write_pid_file()
+
+    def _write_pid_file(self) -> None:
+        try:
+            PID_FILE_PATH.write_text(f"{os.getpid()}\n", encoding="utf-8")
+        except OSError:
+            return
+
+    def _setup_signal_handlers(self) -> None:
+        try:
+            signal.signal(signal.SIGUSR1, self._on_sig_show)
+            signal.signal(signal.SIGUSR2, self._on_sig_hide)
+            signal.signal(signal.SIGHUP, self._on_sig_toggle)
+        except Exception:
+            return
+
+    def _on_sig_show(self, _signum, _frame) -> None:
+        GLib.idle_add(self._show_window)
+
+    def _on_sig_hide(self, _signum, _frame) -> None:
+        if self._window:
+            GLib.idle_add(self._window.hide)
+
+    def _on_sig_toggle(self, _signum, _frame) -> None:
+        GLib.idle_add(self._toggle_window)
+
+    def _on_ipc_ready(self, _source, _condition) -> bool:
+        if not self._ipc_socket:
+            return False
+        while True:
+            try:
+                conn, _addr = self._ipc_socket.accept()
+            except BlockingIOError:
+                break
+            except OSError:
+                return True
+            try:
+                data = conn.recv(1024)
+            except OSError:
+                data = b""
+            finally:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+
+            command = data.decode("utf-8", "ignore").strip().lower()
+            if command == "show":
+                GLib.idle_add(self._show_window)
+            elif command == "hide":
+                if self._window:
+                    GLib.idle_add(self._window.hide)
+            elif command == "toggle":
+                GLib.idle_add(self._toggle_window)
+            elif command == "quit":
+                GLib.idle_add(self.quit)
+        return True
+
+    def _toggle_window(self) -> None:
+        if not self._window:
+            return
+        if self._window.get_visible():
+            self._window.hide()
+        else:
+            self._show_window()
+
 
     def _ensure_window(self) -> None:
         if self._window:
@@ -517,11 +625,109 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
 
     def do_shutdown(self) -> None:
         self._shutdown_thumbnail_loader()
+        if self._ipc_watch_id is not None:
+            try:
+                GLib.source_remove(self._ipc_watch_id)
+            except Exception:
+                pass
+            self._ipc_watch_id = None
+        if self._ipc_socket is not None:
+            try:
+                self._ipc_socket.close()
+            except Exception:
+                pass
+            self._ipc_socket = None
+        try:
+            if IPC_SOCKET_PATH.exists():
+                IPC_SOCKET_PATH.unlink()
+        except OSError:
+            pass
+        try:
+            if PID_FILE_PATH.exists():
+                PID_FILE_PATH.unlink()
+        except OSError:
+            pass
         Adw.Application.do_shutdown(self)
 
 
 def main() -> int:
     import sys
 
+    opts = _parse_cli_args(sys.argv[1:])
+    if opts:
+        if _send_ipc_command(opts):
+            return 0
     app = WallflowApp()
     return app.run(sys.argv)
+
+
+def _parse_cli_args(argv: list[str]) -> str | None:
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--show", action="store_true")
+    parser.add_argument("--hide", action="store_true")
+    parser.add_argument("--toggle", action="store_true")
+    parser.add_argument("--quit", action="store_true")
+    opts, _ = parser.parse_known_args(argv)
+    if opts.show:
+        return "show"
+    if opts.hide:
+        return "hide"
+    if opts.toggle:
+        return "toggle"
+    if opts.quit:
+        return "quit"
+    return None
+
+
+def _send_ipc_command(command: str) -> bool:
+    if _send_ipc_socket(command):
+        return True
+    return _send_ipc_signal(command)
+
+
+def _send_ipc_socket(command: str) -> bool:
+    candidates: list[Path] = [IPC_SOCKET_PATH]
+    runtime_dir = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
+    candidates.append(Path(runtime_dir) / "kwimy-wallflow" / "ipc.sock")
+
+    for socket_path in candidates:
+        if not socket_path.exists():
+            continue
+        try:
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.connect(str(socket_path))
+            sock.send(command.encode("utf-8"))
+            sock.close()
+            return True
+        except OSError:
+            continue
+    return False
+
+
+def _send_ipc_signal(command: str) -> bool:
+    if not PID_FILE_PATH.exists():
+        return False
+    try:
+        raw = PID_FILE_PATH.read_text(encoding="utf-8").strip()
+        pid = int(raw)
+    except (OSError, ValueError):
+        return False
+    try:
+        os.kill(pid, 0)
+    except OSError:
+        return False
+
+    sig_map = {
+        "show": signal.SIGUSR1,
+        "hide": signal.SIGUSR2,
+        "toggle": signal.SIGHUP,
+        "quit": signal.SIGTERM,
+    }
+    sig = sig_map.get(command)
+    if not sig:
+        return False
+    try:
+        os.kill(pid, sig)
+        return True
+    except OSError:
+        return False

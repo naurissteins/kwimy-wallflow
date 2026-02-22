@@ -1,6 +1,9 @@
+@define-color background-color #0f1216;
+
 window {
-    background: #0f1216;
+    background: alpha(@background-color, 0.58);
     color: #e7e7e7;
+    border-radius: 15px;
 }
 
 .wallflow-header {
