@@ -13,28 +13,38 @@ window {
 }
 
 .wallflow-card {
-  background: rgba(255, 255, 255, 0.04);
-  border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  padding: 8px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    padding: 8px;
+}
+
+flowboxchild {
+    background: transparent;
+    border-radius: 14px;
+}
+
+flowboxchild:hover {
+    background: transparent;
+    box-shadow: none;
 }
 
 flowboxchild:selected .wallflow-card {
-  border-color: rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.12);
 }
 
 .wallflow-selected {
-  border-color: rgba(255, 255, 255, 0.35);
-  background: rgba(255, 255, 255, 0.12);
+    border-color: rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.12);
 }
 
 .wallflow-thumb-spinner {
-  min-width: 24px;
-  min-height: 24px;
+    min-width: 24px;
+    min-height: 24px;
 }
 
-.wallflow-card:hover {
+flowboxchild:hover .wallflow-card {
     border-color: rgba(255, 255, 255, 0.2);
     background: rgba(255, 255, 255, 0.08);
 }
