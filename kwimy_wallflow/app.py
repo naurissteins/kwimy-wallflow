@@ -49,6 +49,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._panel_edge: str = "left"
         self._panel_size: int = 420
         self._panel_fit: bool = True
+        self._panel_margins: tuple[int, int, int, int] = (0, 0, 0, 0)
         self._daemon_enabled = False
         self._daemon_start_hidden = False
         self._pending_action: str | None = None
@@ -126,7 +127,11 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         if not self._panel_mode or not self._window:
             return False
         self._apply_layer_shell(
-            self._window, self._panel_edge, self._panel_size, self._panel_fit
+            self._window,
+            self._panel_edge,
+            self._panel_size,
+            self._panel_fit,
+            self._panel_margins,
         )
         return False
 
@@ -152,9 +157,16 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             panel_edge = "left"
         panel_size = max(1, int(self.config.panel_size))
         panel_fit = bool(self.config.panel_fit_to_screen)
+        panel_margins = (
+            max(0, int(self.config.panel_margin_top)),
+            max(0, int(self.config.panel_margin_bottom)),
+            max(0, int(self.config.panel_margin_left)),
+            max(0, int(self.config.panel_margin_right)),
+        )
         self._panel_edge = panel_edge
         self._panel_size = panel_size
         self._panel_fit = panel_fit
+        self._panel_margins = panel_margins
         if self._panel_mode:
             monitor_width, monitor_height = self._get_primary_monitor_size()
             target_width, target_height = self._panel_target_size(
@@ -163,6 +175,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
                 panel_fit,
                 monitor_width,
                 monitor_height,
+                panel_margins,
             )
             window.set_default_size(target_width, target_height)
             window.set_decorated(False)
@@ -179,15 +192,18 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         if self.config.panel_mode and LayerShell is None:
             self._log("gtk4-layer-shell not available; panel_mode disabled")
         if self._panel_mode:
-            self._apply_layer_shell(window, panel_edge, panel_size, panel_fit)
+            self._apply_layer_shell(
+                window, panel_edge, panel_size, panel_fit, panel_margins
+            )
         if self._panel_mode:
             self._log(
-                "panel_mode=%s edge=%s size=%s fit=%s backend=%s target=%sx%s"
+                "panel_mode=%s edge=%s size=%s fit=%s margins=%s backend=%s target=%sx%s"
                 % (
                     self._panel_mode,
                     panel_edge,
                     panel_size,
                     panel_fit,
+                    panel_margins,
                     (
                         Gdk.Display.get_default().get_name()
                         if Gdk.Display.get_default()
@@ -273,7 +289,12 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         return False
 
     def _apply_layer_shell(
-        self, window: Gtk.Window, panel_edge: str, panel_size: int, fit_to_screen: bool
+        self,
+        window: Gtk.Window,
+        panel_edge: str,
+        panel_size: int,
+        fit_to_screen: bool,
+        panel_margins: tuple[int, int, int, int],
     ) -> None:
         if LayerShell is None:
             return
@@ -303,6 +324,11 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         LayerShell.set_anchor(window, LayerShell.Edge.RIGHT, False)
         LayerShell.set_anchor(window, LayerShell.Edge.TOP, False)
         LayerShell.set_anchor(window, LayerShell.Edge.BOTTOM, False)
+        margin_top, margin_bottom, margin_left, margin_right = panel_margins
+        LayerShell.set_margin(window, LayerShell.Edge.TOP, margin_top)
+        LayerShell.set_margin(window, LayerShell.Edge.BOTTOM, margin_bottom)
+        LayerShell.set_margin(window, LayerShell.Edge.LEFT, margin_left)
+        LayerShell.set_margin(window, LayerShell.Edge.RIGHT, margin_right)
 
         monitor_width, monitor_height = self._get_primary_monitor_size()
         self._log(
@@ -315,6 +341,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             fit_to_screen,
             monitor_width,
             monitor_height,
+            panel_margins,
         )
 
         if panel_edge == "left":
@@ -366,14 +393,24 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         fit_to_screen: bool,
         monitor_width: int,
         monitor_height: int,
+        panel_margins: tuple[int, int, int, int],
     ) -> tuple[int, int]:
+        margin_top, margin_bottom, margin_left, margin_right = panel_margins
         if panel_edge in {"left", "right"}:
             width = panel_size
-            height = monitor_height if fit_to_screen and monitor_height else 1
+            height = (
+                monitor_height - margin_top - margin_bottom
+                if fit_to_screen and monitor_height
+                else 1
+            )
         else:
-            width = monitor_width if fit_to_screen and monitor_width else 1
+            width = (
+                monitor_width - margin_left - margin_right
+                if fit_to_screen and monitor_width
+                else 1
+            )
             height = panel_size
-        return int(width), int(height)
+        return int(max(1, width)), int(max(1, height))
 
     @staticmethod
     def _apply_panel_size_hint(

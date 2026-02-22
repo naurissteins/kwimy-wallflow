@@ -24,6 +24,10 @@ class AppConfig:
     panel_size: int
     panel_exclusive_zone: int
     panel_fit_to_screen: bool
+    panel_margin_top: int
+    panel_margin_bottom: int
+    panel_margin_left: int
+    panel_margin_right: int
 
 
 DEFAULT_CONFIG = AppConfig(
@@ -42,6 +46,10 @@ DEFAULT_CONFIG = AppConfig(
     panel_size=420,
     panel_exclusive_zone=-1,
     panel_fit_to_screen=True,
+    panel_margin_top=0,
+    panel_margin_bottom=0,
+    panel_margin_left=0,
+    panel_margin_right=0,
 )
 
 
@@ -103,6 +111,18 @@ def load_config() -> AppConfig:
         panel_fit_to_screen=bool(
             data.get("panel_fit_to_screen", DEFAULT_CONFIG.panel_fit_to_screen)
         ),
+        panel_margin_top=int(
+            data.get("panel_margin_top", DEFAULT_CONFIG.panel_margin_top)
+        ),
+        panel_margin_bottom=int(
+            data.get("panel_margin_bottom", DEFAULT_CONFIG.panel_margin_bottom)
+        ),
+        panel_margin_left=int(
+            data.get("panel_margin_left", DEFAULT_CONFIG.panel_margin_left)
+        ),
+        panel_margin_right=int(
+            data.get("panel_margin_right", DEFAULT_CONFIG.panel_margin_right)
+        ),
     )
 
 
@@ -124,5 +144,9 @@ def write_config(config: AppConfig) -> None:
         "panel_size": config.panel_size,
         "panel_exclusive_zone": config.panel_exclusive_zone,
         "panel_fit_to_screen": config.panel_fit_to_screen,
+        "panel_margin_top": config.panel_margin_top,
+        "panel_margin_bottom": config.panel_margin_bottom,
+        "panel_margin_left": config.panel_margin_left,
+        "panel_margin_right": config.panel_margin_right,
     }
     CONFIG_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

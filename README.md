@@ -38,7 +38,8 @@ Enable a panel-style window (left/right/top/bottom) using `gtk-layer-shell`:
 ```
 "panel_mode": true,
 "panel_edge": "left",
-"panel_size": 420
+"panel_size": 420,
+"panel_margin_top": 30
 ```
 
 ## Autostart (systemd --user)
@@ -80,7 +81,11 @@ Default config:
   "panel_edge": "left",
   "panel_size": 420,
   "panel_exclusive_zone": -1,
-  "panel_fit_to_screen": true
+  "panel_fit_to_screen": true,
+  "panel_margin_top": 0,
+  "panel_margin_bottom": 0,
+  "panel_margin_left": 0,
+  "panel_margin_right": 0
 }
 ```
 
@@ -99,3 +104,5 @@ Edit `assets/style.css` to change background, borders, and typography.
 - `panel_size` is the fixed width/height used for panel mode.
 - `panel_exclusive_zone` controls reserved space (`-1` = none).
 - `panel_fit_to_screen` stretches the panel to the full screen along the long edge.
+- `panel_margin_top` / `panel_margin_bottom` add margins in pixels (useful to sit under a top bar).
+- `panel_margin_left` / `panel_margin_right` add margins for top/bottom panels.
