@@ -9,7 +9,8 @@ A minimal GTK4 + libadwaita wallpaper picker that runs `matugen` on click and ap
 - Configs `~/.config/kwimy-wallflow/config.json`
 - CSS theming `assets/style.css`
 
-> **Tip:** If `"keep_ui_alive": true`, changes to `config.json`, `assets/style.css`, or your wallpaper folder won’t take effect until you restart the `kwimy-wallflow` service `(systemctl --user restart kwimy-wallflow.service)`
+> [!IMPORTANT]  
+> If `"keep_ui_alive": true`, changes to `config.json`, `assets/style.css`, or your wallpaper folder won’t take effect until you restart the `kwimy-wallflow` service `(systemctl --user restart kwimy-wallflow.service)`
 
 ## Install Dependencies
 ```
