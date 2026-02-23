@@ -1,1 +1,0 @@
-"""Kwimy Wallflow package."""

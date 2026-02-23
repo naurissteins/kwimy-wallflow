@@ -1,16 +1,16 @@
-# Kwimy Wallflow
+# Matuwall
 
 A minimal GTK4 + libadwaita wallpaper picker that runs `matugen` on click and applies colors from the selected wallpaper.
 
 ## Features
 - Lazy-loads wallpapers from a configured folder
 - Runs `matugen image <wallpaper> -m <mode>` on click
-- Thumbnail caching in `~/.cache/kwimy-wallflow/`
-- Configs `~/.config/kwimy-wallflow/config.json`
+- Thumbnail caching in `~/.cache/matuwall/`
+- Configs `~/.config/matuwall/config.json`
 - CSS theming `assets/style.css`
 
-> [!IMPORTANT]  
-> If `"keep_ui_alive": true`, changes to `config.json`, `assets/style.css`, or your wallpaper folder won’t take effect until you restart the `kwimy-wallflow` service `(systemctl --user restart kwimy-wallflow.service)`
+> [!TIP]  
+> If `"keep_ui_alive": true`, changes to `config.json`, `assets/style.css`, or your wallpaper folder won’t take effect until you restart the `matuwall` service `(systemctl --user restart matuwall.service)`
 
 ## Install Dependencies
 ```
@@ -19,21 +19,21 @@ sudo pacman -S python python-gobject gtk4 libadwaita gtk-layer-shell
 
 ## Run (from repo)
 ```
-python -m kwimy_wallflow
+python -m matuwall
 ```
 
 ## Daemon Mode
 Keep the app in memory for instant open:
 ```
-kwimy-wallflow --daemon
+matuwall --daemon
 ```
 
 Toggle or control the window from another terminal:
 ```
-kwimy-wallflow --toggle
-kwimy-wallflow --show
-kwimy-wallflow --hide
-kwimy-wallflow --quit
+matuwall --toggle
+matuwall --show
+matuwall --hide
+matuwall --quit
 ```
 
 If the daemon is running, `--show`/`--hide`/`--toggle`/`--quit` talk to it directly and won’t spawn extra windows. The daemon runs without GTK and spawns a separate UI process on `--show` (so memory drops back after hide).
@@ -51,24 +51,24 @@ Enable a panel-style window (left/right/top/bottom) using `gtk-layer-shell`:
 ## Autostart (systemd --user)
 ```
 mkdir -p ~/.config/systemd/user
-cp systemd/kwimy-wallflow.service ~/.config/systemd/user/
+cp systemd/matuwall.service ~/.config/systemd/user/
 systemctl --user daemon-reload
-systemctl --user enable --now kwimy-wallflow.service
+systemctl --user enable --now matuwall.service
 
 systemctl --user daemon-reload
-systemctl --user restart kwimy-wallflow.service
+systemctl --user restart matuwall.service
 ```
 
 If you installed via a local venv, update `ExecStart` in the service file to point at your venv binary.
 If you are on Wayland, the service sets `GDK_BACKEND=wayland` to ensure layer-shell works.
-If your compositor uses a different `WAYLAND_DISPLAY`, update it in `systemd/kwimy-wallflow.service`.
+If your compositor uses a different `WAYLAND_DISPLAY`, update it in `systemd/matuwall.service`.
 If you see “Failed to initialize layer surface”, set `LD_PRELOAD=/usr/lib/libgtk4-layer-shell.so`.
 If `--toggle` opens a new normal window, make sure the service has `DBUS_SESSION_BUS_ADDRESS=unix:path=%t/bus`.
-You can check the service environment with `systemctl --user show kwimy-wallflow.service -p Environment`.
+You can check the service environment with `systemctl --user show matuwall.service -p Environment`.
 
 ## Configuration
 Config file path:
-- `~/.config/kwimy-wallflow/config.json`
+- `~/.config/matuwall/config.json`
 
 Default config:
 ```json
@@ -102,6 +102,19 @@ Default config:
   "panel_margin_left": 0,
   "panel_margin_right": 0
 }
+```
+
+## Hyprland
+```
+windowrule = float true, match:class com\.kwimy\.Matuwall
+windowrule = animation slide top, match:class com\.kwimy\.Matuwall
+windowrule = rounding 15, match:class com\.kwimy\.Matuwall
+windowrule = border_size 0, match:class com\.kwimy\.Matuwall
+windowrule = rounding_power 2, match:class com\.kwimy\.Matuwall
+windowrule = no_shadow on, match:class com\.kwimy\.Matuwall
+
+layerrule = match:namespace matuwall, blur on
+layerrule = match:namespace matuwall, ignore_alpha 0.5
 ```
 
 ## Styling

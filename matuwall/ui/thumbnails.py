@@ -33,7 +33,7 @@ class ThumbnailMixin:
 
     def _build_wallpaper_card(self, path: Path) -> Gtk.Widget:
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
-        box.add_css_class("wallflow-card")
+        box.add_css_class("matuwall-card")
         box.set_focusable(False)
 
         thumb, cached = self._load_thumbnail_cached(path)
@@ -41,7 +41,7 @@ class ThumbnailMixin:
         thumb_width, thumb_height = self._thumbnail_dimensions()
         picture.set_size_request(thumb_width, thumb_height)
         picture.set_content_fit(Gtk.ContentFit.COVER)
-        picture.add_css_class("wallflow-thumb")
+        picture.add_css_class("matuwall-thumb")
 
         thumb_overlay = Gtk.Overlay()
         thumb_overlay.set_child(picture)
@@ -49,7 +49,7 @@ class ThumbnailMixin:
         spinner = Gtk.Spinner()
         spinner.set_halign(Gtk.Align.CENTER)
         spinner.set_valign(Gtk.Align.CENTER)
-        spinner.add_css_class("wallflow-thumb-spinner")
+        spinner.add_css_class("matuwall-thumb-spinner")
         spinner.set_visible(False)
         thumb_overlay.add_overlay(spinner)
 
@@ -58,7 +58,7 @@ class ThumbnailMixin:
             label = Gtk.Label(label=path.name)
             label.set_wrap(True)
             label.set_xalign(0.0)
-            label.add_css_class("wallflow-label")
+            label.add_css_class("matuwall-label")
             box.append(label)
 
         child = Gtk.FlowBoxChild()

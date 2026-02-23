@@ -3,8 +3,8 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-APP_ID = "com.kwimy.Wallflow"
-APP_NAME = "kwimy-wallflow"
+APP_ID = "com.kwimy.Matuwall"
+APP_NAME = "matuwall"
 
 
 def _xdg_dir(env_key: str, fallback: Path) -> Path:

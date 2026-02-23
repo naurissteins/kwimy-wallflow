@@ -40,7 +40,7 @@ def send_ipc_command(command: str) -> bool:
 def _send_ipc_socket(command: str) -> bool:
     candidates: list[Path] = [IPC_SOCKET_PATH]
     runtime_dir = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
-    candidates.append(Path(runtime_dir) / "kwimy-wallflow" / "ipc.sock")
+    candidates.append(Path(runtime_dir) / "matuwall" / "ipc.sock")
 
     for socket_path in candidates:
         if not socket_path.exists():

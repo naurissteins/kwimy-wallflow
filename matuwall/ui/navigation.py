@@ -125,7 +125,7 @@ class NavigationMixin:
         if self._selected_child:
             prev_box = self._selected_child.get_child()
             if prev_box:
-                prev_box.remove_css_class("wallflow-selected")
+                prev_box.remove_css_class("matuwall-selected")
 
         self._selected_child = child
         if index is None:
@@ -136,7 +136,7 @@ class NavigationMixin:
 
         box = child.get_child()
         if box:
-            box.add_css_class("wallflow-selected")
+            box.add_css_class("matuwall-selected")
             if hasattr(box, "grab_focus"):
                 box.grab_focus()
         self._scroll_to_child(child)

@@ -1,5 +1,5 @@
 [Unit]
-Description=Kwimy Wallflow daemon
+Description=Matuwall daemon
 After=graphical-session.target
 PartOf=graphical-session.target
 
@@ -11,7 +11,7 @@ Environment=XDG_SESSION_TYPE=wayland
 Environment=WAYLAND_DISPLAY=wayland-1
 Environment=LD_PRELOAD=/usr/lib/libgtk4-layer-shell.so
 Environment=DBUS_SESSION_BUS_ADDRESS=unix:path=%t/bus
-ExecStart=%h/.local/bin/kwimy-wallflow --daemon
+ExecStart=%h/.local/bin/matuwall --daemon
 Restart=on-failure
 
 [Install]

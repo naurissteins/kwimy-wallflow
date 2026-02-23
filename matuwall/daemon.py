@@ -13,7 +13,7 @@ from .config import CONFIG_PATH, load_config
 from .paths import IPC_SOCKET_PATH, PID_FILE_PATH, RUNTIME_DIR, UI_PID_FILE_PATH
 
 
-class WallflowDaemon:
+class MatuwallDaemon:
     def __init__(self) -> None:
         self._selector = selectors.DefaultSelector()
         self._socket: socket.socket | None = None
@@ -97,7 +97,7 @@ class WallflowDaemon:
                 self._signal_ui(signal.SIGUSR1)
             return
         env = os.environ.copy()
-        env["KWIMY_WALLFLOW_UI"] = "1"
+        env["MATUWALL_UI"] = "1"
         log_path = RUNTIME_DIR / "ui.log"
         try:
             log_path.parent.mkdir(parents=True, exist_ok=True)
@@ -105,17 +105,17 @@ class WallflowDaemon:
             log_path = None
         if log_path:
             with log_path.open("ab") as log:
-                log.write(b"\n--- kwimy-wallflow ui start ---\n")
+                log.write(b"\n--- matuwall ui start ---\n")
                 log.flush()
                 proc = subprocess.Popen(
-                    [sys.executable, "-m", "kwimy_wallflow", "--ui"],
+                    [sys.executable, "-m", "matuwall", "--ui"],
                     env=env,
                     stdout=log,
                     stderr=log,
                 )
         else:
             proc = subprocess.Popen(
-                [sys.executable, "-m", "kwimy_wallflow", "--ui"],
+                [sys.executable, "-m", "matuwall", "--ui"],
                 env=env,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
@@ -181,7 +181,7 @@ class WallflowDaemon:
             data = cmdline_path.read_bytes()
         except OSError:
             return False
-        if b"kwimy_wallflow" not in data:
+        if b"matuwall" not in data:
             return False
         if b"--ui" not in data:
             return False
@@ -264,4 +264,4 @@ class WallflowDaemon:
 
 
 def run_daemon() -> int:
-    return WallflowDaemon().run()
+    return MatuwallDaemon().run()

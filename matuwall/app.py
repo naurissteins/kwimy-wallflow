@@ -37,7 +37,7 @@ from .ui.thumbnails import ThumbnailMixin
 from .wallpapers import list_wallpapers
 
 
-class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
+class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
     LANDSCAPE_RATIO = 9 / 16
 
     def __init__(self) -> None:
@@ -78,7 +78,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._load_css()
         if LAYER_SHELL_ERROR:
             self._log(f"gtk4-layer-shell import error: {LAYER_SHELL_ERROR}")
-        if os.environ.get("KWIMY_WALLFLOW_UI") == "1":
+        if os.environ.get("MATUWALL_UI") == "1":
             self._setup_ui_signal_handlers()
 
     def do_command_line(self, command_line: Gio.ApplicationCommandLine) -> int:
@@ -269,7 +269,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
 
     def _hide_window(self) -> None:
         if not self._daemon_enabled:
-            if self._keep_ui_alive and os.environ.get("KWIMY_WALLFLOW_UI") == "1":
+            if self._keep_ui_alive and os.environ.get("MATUWALL_UI") == "1":
                 if self._window:
                     self._window.hide()
                 if self._backdrop_window:
@@ -345,7 +345,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             window.set_default_size(
                 int(self.config.window_width), int(self.config.window_height)
             )
-        window.set_title("Kwimy Wallflow")
+        window.set_title("Matuwall")
         if not self._panel_mode:
             window.set_decorated(bool(self.config.window_decorations))
         window.connect("close-request", self._on_close_request)
@@ -398,7 +398,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         if self._daemon_enabled:
             self._hide_window()
             return True
-        if self._keep_ui_alive and os.environ.get("KWIMY_WALLFLOW_UI") == "1":
+        if self._keep_ui_alive and os.environ.get("MATUWALL_UI") == "1":
             self._hide_window()
             return True
         if self._backdrop_enabled:
@@ -428,7 +428,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             return
         LayerShell.init_for_window(window)
         try:
-            LayerShell.set_namespace(window, "kwimy-wallflow")
+            LayerShell.set_namespace(window, "matuwall")
         except Exception:
             pass
         try:
@@ -510,11 +510,11 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         if self._backdrop_window:
             return
         backdrop = Adw.ApplicationWindow(application=self)
-        backdrop.set_title("Kwimy Wallflow Backdrop")
+        backdrop.set_title("Matuwall Backdrop")
         backdrop.set_decorated(False)
         backdrop.set_resizable(False)
         backdrop.set_opacity(self._backdrop_opacity)
-        backdrop.add_css_class("wallflow-backdrop")
+        backdrop.add_css_class("matuwall-backdrop")
         box = Gtk.Box()
         box.set_hexpand(True)
         box.set_vexpand(True)
@@ -532,7 +532,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             return
         LayerShell.init_for_window(window)
         try:
-            LayerShell.set_namespace(window, "kwimy-wallflow-backdrop")
+            LayerShell.set_namespace(window, "matuwall-backdrop")
         except Exception:
             pass
         LayerShell.set_layer(window, LayerShell.Layer.TOP)
@@ -664,7 +664,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
                     self._scroller.set_child(
                     self._build_empty_state(
                         "Wallpaper folder not found",
-                        f"{wallpaper_dir}\nSet a valid path in ~/.config/kwimy-wallflow/config.json",
+                        f"{wallpaper_dir}\nSet a valid path in ~/.config/matuwall/config.json",
                     )
                 )
                 self._flowbox = None
@@ -688,7 +688,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         page = Adw.StatusPage()
         page.set_title(title)
         page.set_description(subtitle)
-        page.add_css_class("wallflow-empty")
+        page.add_css_class("matuwall-empty")
         page.set_hexpand(True)
         page.set_vexpand(True)
         return page
@@ -699,12 +699,12 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         toolbar_view = Adw.ToolbarView()
         if self.config.window_decorations:
             header = Adw.HeaderBar()
-            header.set_title_widget(Gtk.Label(label="Kwimy Wallflow"))
-            header.add_css_class("wallflow-header")
+            header.set_title_widget(Gtk.Label(label="Matuwall"))
+            header.add_css_class("matuwall-header")
             toolbar_view.add_top_bar(header)
 
         scroller = Gtk.ScrolledWindow()
-        scroller.add_css_class("wallflow-scroller")
+        scroller.add_css_class("matuwall-scroller")
         if self._scroll_direction == "horizontal":
             scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER)
         else:
@@ -732,7 +732,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             scroller.set_child(
                 self._build_empty_state(
                     "Wallpaper folder not found",
-                    f"{wallpaper_dir}\nSet a valid path in ~/.config/kwimy-wallflow/config.json",
+                    f"{wallpaper_dir}\nSet a valid path in ~/.config/matuwall/config.json",
                 )
             )
             return
@@ -763,7 +763,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         flowbox.set_max_children_per_line(6)
         flowbox.set_column_spacing(12)
         flowbox.set_row_spacing(12)
-        flowbox.add_css_class("wallflow-grid")
+        flowbox.add_css_class("matuwall-grid")
         if (
             self._panel_mode
             and self._scroll_direction == "vertical"
@@ -785,7 +785,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         viewport_box.set_halign(Gtk.Align.START)
         viewport_box.set_hexpand(True)
         viewport_box.set_vexpand(True)
-        viewport_box.add_css_class("wallflow-viewport")
+        viewport_box.add_css_class("matuwall-viewport")
         viewport_box.append(flowbox)
         scroller.set_child(viewport_box)
 
@@ -854,7 +854,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
                     PID_FILE_PATH.unlink()
             except OSError:
                 pass
-        if os.environ.get("KWIMY_WALLFLOW_UI") == "1":
+        if os.environ.get("MATUWALL_UI") == "1":
             try:
                 if UI_PID_FILE_PATH.exists():
                     UI_PID_FILE_PATH.unlink()
@@ -866,5 +866,5 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
 def main() -> int:
     import sys
 
-    app = WallflowApp()
+    app = MatuwallApp()
     return app.run(sys.argv)
