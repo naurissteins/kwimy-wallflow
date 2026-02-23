@@ -30,6 +30,7 @@ from .paths import (
     IPC_SOCKET_PATH,
     PID_FILE_PATH,
     RUNTIME_DIR,
+    UI_PID_FILE_PATH,
 )
 from .ui.navigation import NavigationMixin
 from .ui.thumbnails import ThumbnailMixin
@@ -62,6 +63,8 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._backdrop_enabled = False
         self._backdrop_opacity = 0.0
         self._backdrop_click_to_close = True
+        self._keep_ui_alive = False
+        self._needs_reload = False
         self._daemon_enabled = False
         self._daemon_start_hidden = False
         self._pending_action: str | None = None
@@ -75,6 +78,8 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._load_css()
         if LAYER_SHELL_ERROR:
             self._log(f"gtk4-layer-shell import error: {LAYER_SHELL_ERROR}")
+        if os.environ.get("KWIMY_WALLFLOW_UI") == "1":
+            self._setup_ui_signal_handlers()
 
     def do_command_line(self, command_line: Gio.ApplicationCommandLine) -> int:
         args = list(command_line.get_arguments())
@@ -135,6 +140,8 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             return
         if self._window.get_visible():
             return
+        if self._needs_reload:
+            self._reload_content()
         if self._panel_mode and self._backdrop_enabled:
             self._show_backdrop()
         self._window.present()
@@ -204,6 +211,14 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         except Exception:
             return
 
+    def _setup_ui_signal_handlers(self) -> None:
+        try:
+            signal.signal(signal.SIGUSR1, self._on_sig_show)
+            signal.signal(signal.SIGUSR2, self._on_sig_hide)
+            signal.signal(signal.SIGHUP, self._on_sig_toggle)
+        except Exception:
+            return
+
     def _on_sig_show(self, _signum, _frame) -> None:
         GLib.idle_add(self._show_window)
 
@@ -253,6 +268,15 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             self._show_window()
 
     def _hide_window(self) -> None:
+        if not self._daemon_enabled:
+            if self._keep_ui_alive and os.environ.get("KWIMY_WALLFLOW_UI") == "1":
+                if self._window:
+                    self._window.hide()
+                if self._backdrop_window:
+                    self._backdrop_window.hide()
+                return
+            self.quit()
+            return
         if self._window:
             self._window.hide()
         if self._backdrop_window:
@@ -296,6 +320,7 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             0.0, min(1.0, float(self.config.backdrop_opacity))
         )
         self._backdrop_click_to_close = bool(self.config.backdrop_click_to_close)
+        self._keep_ui_alive = bool(self.config.keep_ui_alive)
         if (
             self._backdrop_enabled
             and self._backdrop_click_to_close
@@ -367,64 +392,18 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
                 )
             )
 
-        toolbar_view = Adw.ToolbarView()
-        if self.config.window_decorations:
-            header = Adw.HeaderBar()
-            header.set_title_widget(Gtk.Label(label="Kwimy Wallflow"))
-            header.add_css_class("wallflow-header")
-            toolbar_view.add_top_bar(header)
-
-        flowbox = Gtk.FlowBox()
-        flowbox.set_selection_mode(Gtk.SelectionMode.NONE)
-        flowbox.set_activate_on_single_click(True)
-        if self._scroll_direction == "horizontal":
-            flowbox.set_orientation(Gtk.Orientation.VERTICAL)
-        else:
-            flowbox.set_orientation(Gtk.Orientation.HORIZONTAL)
-        flowbox.set_max_children_per_line(6)
-        flowbox.set_column_spacing(12)
-        flowbox.set_row_spacing(12)
-        flowbox.add_css_class("wallflow-grid")
-        self._attach_navigation(flowbox)
-        self._flowbox = flowbox
-
-        scroller = Gtk.ScrolledWindow()
-        scroller.set_child(flowbox)
-        scroller.add_css_class("wallflow-scroller")
-        if self._scroll_direction == "horizontal":
-            scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER)
-        else:
-            scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self._scroller = scroller
-
-        if self.config and not self.config.mouse_enabled:
-            flowbox.set_activate_on_single_click(False)
-            flowbox.set_can_target(False)
-            scroller.set_can_target(False)
-        if self.config:
-            scroller.set_margin_top(max(0, int(self.config.content_inset_top)))
-            scroller.set_margin_bottom(max(0, int(self.config.content_inset_bottom)))
-            scroller.set_margin_start(max(0, int(self.config.content_inset_left)))
-            scroller.set_margin_end(max(0, int(self.config.content_inset_right)))
-
-        toast_overlay = Adw.ToastOverlay()
-        toast_overlay.set_child(scroller)
-        self._toast_overlay = toast_overlay
-
-        toolbar_view.set_content(toast_overlay)
-        window.set_content(toolbar_view)
-
-        self._init_thumbnail_loader()
-        wallpaper_dir = Path(self.config.wallpaper_dir).expanduser()
-        self._wallpaper_paths = list_wallpapers(wallpaper_dir)
-        self._load_index = 0
-        GLib.idle_add(self._load_next_batch)
+        self._build_content()
 
     def _on_close_request(self, _window: Gtk.Window) -> bool:
         if self._daemon_enabled:
             self._hide_window()
             return True
-        self._hide_window()
+        if self._keep_ui_alive and os.environ.get("KWIMY_WALLFLOW_UI") == "1":
+            self._hide_window()
+            return True
+        if self._backdrop_enabled:
+            self._hide_window()
+            return True
         return False
 
     @staticmethod
@@ -671,6 +650,72 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._load_index = end
         return self._load_index < len(self._wallpaper_paths)
 
+    def _reload_content(self) -> None:
+        self._needs_reload = False
+        if not self.config:
+            return
+        self._init_thumbnail_loader()
+        if not self._wallpaper_paths:
+            wallpaper_dir = Path(self.config.wallpaper_dir).expanduser()
+            self._wallpaper_paths = list_wallpapers(wallpaper_dir)
+        self._load_index = 0
+        GLib.idle_add(self._load_next_batch)
+
+    def _build_content(self) -> None:
+        if not self._window or not self.config:
+            return
+        toolbar_view = Adw.ToolbarView()
+        if self.config.window_decorations:
+            header = Adw.HeaderBar()
+            header.set_title_widget(Gtk.Label(label="Kwimy Wallflow"))
+            header.add_css_class("wallflow-header")
+            toolbar_view.add_top_bar(header)
+
+        flowbox = Gtk.FlowBox()
+        flowbox.set_selection_mode(Gtk.SelectionMode.NONE)
+        flowbox.set_activate_on_single_click(True)
+        if self._scroll_direction == "horizontal":
+            flowbox.set_orientation(Gtk.Orientation.VERTICAL)
+        else:
+            flowbox.set_orientation(Gtk.Orientation.HORIZONTAL)
+        flowbox.set_max_children_per_line(6)
+        flowbox.set_column_spacing(12)
+        flowbox.set_row_spacing(12)
+        flowbox.add_css_class("wallflow-grid")
+        self._attach_navigation(flowbox)
+        self._flowbox = flowbox
+
+        scroller = Gtk.ScrolledWindow()
+        scroller.set_child(flowbox)
+        scroller.add_css_class("wallflow-scroller")
+        if self._scroll_direction == "horizontal":
+            scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER)
+        else:
+            scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self._scroller = scroller
+
+        if not self.config.mouse_enabled:
+            flowbox.set_activate_on_single_click(False)
+            flowbox.set_can_target(False)
+            scroller.set_can_target(False)
+        scroller.set_margin_top(max(0, int(self.config.content_inset_top)))
+        scroller.set_margin_bottom(max(0, int(self.config.content_inset_bottom)))
+        scroller.set_margin_start(max(0, int(self.config.content_inset_left)))
+        scroller.set_margin_end(max(0, int(self.config.content_inset_right)))
+
+        toast_overlay = Adw.ToastOverlay()
+        toast_overlay.set_child(scroller)
+        self._toast_overlay = toast_overlay
+
+        toolbar_view.set_content(toast_overlay)
+        self._window.set_content(toolbar_view)
+
+        self._init_thumbnail_loader()
+        wallpaper_dir = Path(self.config.wallpaper_dir).expanduser()
+        self._wallpaper_paths = list_wallpapers(wallpaper_dir)
+        self._load_index = 0
+        GLib.idle_add(self._load_next_batch)
+
     def _run_matugen(self, path: Path) -> None:
         if not self.config:
             return
@@ -705,28 +750,35 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
 
     def do_shutdown(self) -> None:
         self._shutdown_thumbnail_loader()
-        if self._ipc_watch_id is not None:
+        if self._daemon_enabled:
+            if self._ipc_watch_id is not None:
+                try:
+                    GLib.source_remove(self._ipc_watch_id)
+                except Exception:
+                    pass
+                self._ipc_watch_id = None
+            if self._ipc_socket is not None:
+                try:
+                    self._ipc_socket.close()
+                except Exception:
+                    pass
+                self._ipc_socket = None
             try:
-                GLib.source_remove(self._ipc_watch_id)
-            except Exception:
+                if IPC_SOCKET_PATH.exists():
+                    IPC_SOCKET_PATH.unlink()
+            except OSError:
                 pass
-            self._ipc_watch_id = None
-        if self._ipc_socket is not None:
             try:
-                self._ipc_socket.close()
-            except Exception:
+                if PID_FILE_PATH.exists():
+                    PID_FILE_PATH.unlink()
+            except OSError:
                 pass
-            self._ipc_socket = None
-        try:
-            if IPC_SOCKET_PATH.exists():
-                IPC_SOCKET_PATH.unlink()
-        except OSError:
-            pass
-        try:
-            if PID_FILE_PATH.exists():
-                PID_FILE_PATH.unlink()
-        except OSError:
-            pass
+        if os.environ.get("KWIMY_WALLFLOW_UI") == "1":
+            try:
+                if UI_PID_FILE_PATH.exists():
+                    UI_PID_FILE_PATH.unlink()
+            except OSError:
+                pass
         Adw.Application.do_shutdown(self)
 
 

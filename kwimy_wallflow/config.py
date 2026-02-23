@@ -20,6 +20,7 @@ class AppConfig:
     window_height: int
     scroll_direction: str
     mouse_enabled: bool
+    keep_ui_alive: bool
     backdrop_enabled: bool
     backdrop_opacity: float
     backdrop_click_to_close: bool
@@ -50,6 +51,7 @@ DEFAULT_CONFIG = AppConfig(
     window_height=562,
     scroll_direction="vertical",
     mouse_enabled=True,
+    keep_ui_alive=False,
     backdrop_enabled=False,
     backdrop_opacity=0.0,
     backdrop_click_to_close=True,
@@ -119,6 +121,9 @@ def load_config() -> AppConfig:
             data.get("scroll_direction", DEFAULT_CONFIG.scroll_direction)
         ),
         mouse_enabled=bool(data.get("mouse_enabled", DEFAULT_CONFIG.mouse_enabled)),
+        keep_ui_alive=bool(
+            data.get("keep_ui_alive", DEFAULT_CONFIG.keep_ui_alive)
+        ),
         backdrop_enabled=bool(
             data.get("backdrop_enabled", DEFAULT_CONFIG.backdrop_enabled)
         ),
@@ -181,6 +186,7 @@ def write_config(config: AppConfig) -> None:
         "window_height": config.window_height,
         "scroll_direction": config.scroll_direction,
         "mouse_enabled": config.mouse_enabled,
+        "keep_ui_alive": config.keep_ui_alive,
         "backdrop_enabled": config.backdrop_enabled,
         "backdrop_opacity": config.backdrop_opacity,
         "backdrop_click_to_close": config.backdrop_click_to_close,

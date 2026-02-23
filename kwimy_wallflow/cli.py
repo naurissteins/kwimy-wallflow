@@ -11,11 +11,15 @@ from .paths import IPC_SOCKET_PATH, PID_FILE_PATH
 
 def parse_cli_command(argv: list[str]) -> str | None:
     parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument("--daemon", action="store_true")
+    parser.add_argument("--ui", action="store_true")
     parser.add_argument("--show", action="store_true")
     parser.add_argument("--hide", action="store_true")
     parser.add_argument("--toggle", action="store_true")
     parser.add_argument("--quit", action="store_true")
     opts, _ = parser.parse_known_args(argv)
+    if opts.daemon or opts.ui:
+        return None
     if opts.show:
         return "show"
     if opts.hide:

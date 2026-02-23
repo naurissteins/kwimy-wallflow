@@ -33,7 +33,7 @@ kwimy-wallflow --hide
 kwimy-wallflow --quit
 ```
 
-If the daemon is running, `--show`/`--hide`/`--toggle`/`--quit` talk to it directly and won’t spawn extra windows.
+If the daemon is running, `--show`/`--hide`/`--toggle`/`--quit` talk to it directly and won’t spawn extra windows. The daemon runs without GTK and spawns a separate UI process on `--show` (so memory drops back after hide).
 
 ## Panel Mode (Layer Shell)
 Enable a panel-style window (left/right/top/bottom) using `gtk-layer-shell`:
@@ -80,6 +80,7 @@ Default config:
   "window_height": 600,
   "scroll_direction": "vertical",
   "mouse_enabled": true,
+  "keep_ui_alive": false,
   "backdrop_enabled": false,
   "backdrop_opacity": 0.0,
   "backdrop_click_to_close": true,
@@ -110,6 +111,7 @@ Edit `assets/style.css` to change background, borders, and typography.
   - `square`: 1:1
 - `scroll_direction` controls whether the grid scrolls vertically or horizontally. Use `vertical` or `horizontal`.
 - `mouse_enabled` toggles pointer interaction (click/hover/scroll).
+- `keep_ui_alive` keeps the UI process running between show/hide (faster open, higher memory).
 - `backdrop_enabled` shows a full-screen transparent layer behind the panel.
 - `backdrop_opacity` controls the backdrop tint (0.0 to 1.0). Note: if click-to-close is enabled, values at 0.0 are clamped to 0.01 so the compositor still delivers input. **(Wayland compositor fully transparent surfaces often don’t receive input events)** I will update when I will find a solution.
 - `backdrop_click_to_close` closes the panel when clicking outside it.

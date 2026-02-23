@@ -24,3 +24,4 @@ RUNTIME_DIR = _xdg_dir(
 ASSETS_DIR = Path(__file__).resolve().parent / "assets"
 IPC_SOCKET_PATH = RUNTIME_DIR / "ipc.sock"
 PID_FILE_PATH = RUNTIME_DIR / "daemon.pid"
+UI_PID_FILE_PATH = RUNTIME_DIR / "ui.pid"
