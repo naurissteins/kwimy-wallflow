@@ -1,16 +1,18 @@
 # Matuwall
 
-A minimal GTK4 + libadwaita wallpaper picker that runs `matugen` on click and applies colors from the selected wallpaper.
+A minimal GTK4 + libadwaita wallpaper picker for Wayland. Select a wallpaper and Matuwall triggers [matugen](https://github.com/InioX/matugen) to generate and apply colors from the chosen image.
+
+NOTE: Matuwall does not manage matugen configuration, users are expected to have their own matugen setup in place.
 
 ## Features
 - Lazy-loads wallpapers from a configured folder
 - Runs `matugen image <wallpaper> -m <mode>` on click
 - Thumbnail caching in `~/.cache/matuwall/`
 - Configs `~/.config/matuwall/config.json`
-- CSS theming `assets/style.css`
+- CSS theming `~/.config/matuwall/style.css`
 
 > [!TIP]  
-> If `"keep_ui_alive": true`, changes to `config.json`, `assets/style.css`, or your wallpaper folder won’t take effect until you restart the `matuwall` service `(systemctl --user restart matuwall.service)`
+> If `"keep_ui_alive": true`, changes to `config.json`, `~/.config/matuwall/style.css`, or your wallpaper folder won’t take effect until you restart the `matuwall` service `(systemctl --user restart matuwall.service)`
 
 ## Install Dependencies
 ```
@@ -118,7 +120,7 @@ layerrule = match:namespace matuwall, ignore_alpha 0.5
 ```
 
 ## Styling
-Edit `assets/style.css` to change background, borders, and typography.
+Edit `~/.config/matuwall/style.css` to change background, borders, and typography.
 
 ## Notes
 - `matugen` must be available in `PATH`.

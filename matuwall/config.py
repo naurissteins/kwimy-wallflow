@@ -4,7 +4,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-from .paths import CONFIG_DIR
+from .paths import ASSETS_DIR, CONFIG_DIR
 
 
 @dataclass
@@ -78,6 +78,22 @@ def ensure_config() -> None:
     CONFIG_DIR.mkdir(parents=True, exist_ok=True)
     if not CONFIG_PATH.exists():
         write_config(DEFAULT_CONFIG)
+    user_css = CONFIG_DIR / "style.css"
+    if not user_css.exists():
+        try:
+            bundled_css = ASSETS_DIR / "style.css"
+            if bundled_css.exists():
+                user_css.write_text(
+                    bundled_css.read_text(encoding="utf-8"),
+                    encoding="utf-8",
+                )
+            else:
+                user_css.write_text(
+                    "# Copy the built-in style here to override app styling.\n",
+                    encoding="utf-8",
+                )
+        except OSError:
+            pass
 
 
 def _strip_json_comments(text: str) -> str:

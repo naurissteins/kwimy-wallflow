@@ -31,6 +31,7 @@ from .paths import (
     PID_FILE_PATH,
     RUNTIME_DIR,
     UI_PID_FILE_PATH,
+    USER_CSS_PATH,
 )
 from .ui.navigation import NavigationMixin
 from .ui.thumbnails import ThumbnailMixin
@@ -628,7 +629,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         return opts
 
     def _load_css(self) -> None:
-        css_path = ASSETS_DIR / "style.css"
+        css_path = USER_CSS_PATH if USER_CSS_PATH.exists() else ASSETS_DIR / "style.css"
         if not css_path.exists():
             return
         provider = Gtk.CssProvider()
