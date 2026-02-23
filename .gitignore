@@ -13,4 +13,4 @@ env/
 *.log
 DEV.md
 build
-kwimy_wallflow.egg-info
+matuwall.egg-info
