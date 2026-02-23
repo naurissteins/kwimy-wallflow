@@ -34,6 +34,7 @@ kwimy-wallflow --quit
 ```
 
 If the daemon is running, `--show`/`--hide`/`--toggle`/`--quit` talk to it directly and won’t spawn extra windows. The daemon runs without GTK and spawns a separate UI process on `--show` (so memory drops back after hide).
+The daemon auto-reloads `config.json` within ~0.5s when you change it. UI settings only apply on the next UI start unless `keep_ui_alive` is `true` (in that case, hide/show won’t restart the UI).
 
 ## Panel Mode (Layer Shell)
 Enable a panel-style window (left/right/top/bottom) using `gtk-layer-shell`:

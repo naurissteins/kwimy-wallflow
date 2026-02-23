@@ -9,7 +9,7 @@ import sys
 import time
 from pathlib import Path
 
-from .config import load_config
+from .config import CONFIG_PATH, load_config
 from .paths import IPC_SOCKET_PATH, PID_FILE_PATH, RUNTIME_DIR, UI_PID_FILE_PATH
 
 
@@ -18,7 +18,10 @@ class WallflowDaemon:
         self._selector = selectors.DefaultSelector()
         self._socket: socket.socket | None = None
         self._running = True
-        self._keep_ui_alive = bool(load_config().keep_ui_alive)
+        self._keep_ui_alive = False
+        self._config_mtime_ns: int | None = None
+        self._config_size: int | None = None
+        self._load_config(force=True)
 
     def run(self) -> int:
         self._setup_socket()
@@ -27,6 +30,7 @@ class WallflowDaemon:
         self._write_pid_file()
         try:
             while self._running:
+                self._load_config()
                 for key, _mask in self._selector.select(timeout=0.5):
                     callback = key.data
                     callback(key.fileobj)
@@ -223,6 +227,24 @@ class WallflowDaemon:
         except OSError:
             pass
         self._clear_ui_pid()
+
+    def _load_config(self, force: bool = False) -> None:
+        try:
+            stat = CONFIG_PATH.stat()
+            mtime_ns = stat.st_mtime_ns
+            size = stat.st_size
+        except OSError:
+            mtime_ns = 0
+            size = 0
+        if (
+            not force
+            and self._config_mtime_ns == mtime_ns
+            and self._config_size == size
+        ):
+            return
+        self._config_mtime_ns = mtime_ns
+        self._config_size = size
+        self._keep_ui_alive = bool(load_config().keep_ui_alive)
 
 
 def run_daemon() -> int:
