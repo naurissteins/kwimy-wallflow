@@ -20,6 +20,10 @@ window {
     padding: 0 16px;
 }
 
+.wallflow-viewport {
+    padding-bottom: 0;
+}
+
 .wallflow-empty {
     padding: 32px;
 }

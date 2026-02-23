@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import math
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -63,6 +64,15 @@ class ThumbnailMixin:
         child = Gtk.FlowBoxChild()
         child.set_child(box)
         child.wallpaper_path = str(path)
+        if self._panel_full_width_enabled():
+            child.set_hexpand(True)
+            child.set_halign(Gtk.Align.FILL)
+            box.set_hexpand(True)
+            box.set_halign(Gtk.Align.FILL)
+            thumb_overlay.set_hexpand(True)
+            thumb_overlay.set_halign(Gtk.Align.FILL)
+            picture.set_hexpand(True)
+            picture.set_halign(Gtk.Align.FILL)
         if self.config and not self.config.mouse_enabled:
             child.set_can_target(False)
             box.set_can_target(False)
@@ -146,25 +156,58 @@ class ThumbnailMixin:
         try:
             pixbuf = self._render_thumbnail(path, width, height)
             pixbuf.savev(str(thumbnail_path), "png", [], [])
+            if not thumbnail_path.exists():
+                raise RuntimeError("thumbnail save produced no file")
+            if thumbnail_path.stat().st_size == 0:
+                try:
+                    thumbnail_path.unlink()
+                except OSError:
+                    pass
+                raise RuntimeError("thumbnail save produced empty file")
             return thumbnail_path
-        except Exception:
+        except GLib.Error as exc:
+            self._log_thumbnail_error(path, exc)
+            return None
+        except Exception as exc:
+            self._log_thumbnail_error(path, exc)
             return None
 
     def _thumbnail_cache_path(self, path: Path) -> Path:
-        stat = path.stat()
+        try:
+            stat = path.stat()
+            stat_key = f"{stat.st_mtime}-{stat.st_size}"
+        except Exception:
+            stat_key = "nostat"
         width, height = self._thumbnail_dimensions()
-        payload = f"{path}-{stat.st_mtime}-{stat.st_size}-{width}x{height}"
+        payload = f"{path}-{stat_key}-{width}x{height}"
         digest = hashlib.sha256(payload.encode("utf-8")).hexdigest()
         return CACHE_DIR / f"{digest}.png"
 
     def _thumbnail_dimensions(self) -> tuple[int, int]:
         width = max(1, self.config.thumbnail_size if self.config else 256)
+        if self._panel_full_width_enabled():
+            inset_left = int(self.config.content_inset_left)
+            inset_right = int(self.config.content_inset_right)
+            # Match default CSS: grid padding 16px left/right, card padding 8px.
+            available = int(getattr(self, "_panel_size", width))
+            available -= inset_left + inset_right
+            available -= 32  # grid horizontal padding
+            full_width = max(1, available - 16)  # card padding
+            width = max(1, full_width)
         shape = (self.config.thumbnail_shape if self.config else "landscape").lower()
         if shape == "square":
             height = width
         else:
             height = max(1, int(width * self.LANDSCAPE_RATIO))
         return width, height
+
+    def _panel_full_width_enabled(self) -> bool:
+        if not self.config:
+            return False
+        if not getattr(self, "_panel_mode", False):
+            return False
+        edge = str(getattr(self, "_panel_edge", "left")).lower()
+        return edge in {"left", "right"} and self._scroll_direction == "vertical"
 
     @staticmethod
     def _empty_pixbuf() -> GdkPixbuf.Pixbuf:
@@ -181,18 +224,43 @@ class ThumbnailMixin:
             )
 
         scale = max(width / src_w, height / src_h)
-        scaled_w = max(1, int(src_w * scale))
-        scaled_h = max(1, int(src_h * scale))
+        scaled_w = max(1, int(math.ceil(src_w * scale)))
+        scaled_h = max(1, int(math.ceil(src_h * scale)))
 
         scaled = base.scale_simple(
             scaled_w, scaled_h, GdkPixbuf.InterpType.BILINEAR
         )
+        if scaled is None:
+            return GdkPixbuf.Pixbuf.new(
+                GdkPixbuf.Colorspace.RGB, True, 8, width, height
+            )
 
         if scaled_w == width and scaled_h == height:
             return scaled
+        if scaled_w < width or scaled_h < height:
+            # Fallback: stretch to requested size if rounding got too small.
+            stretched = scaled.scale_simple(
+                width, height, GdkPixbuf.InterpType.BILINEAR
+            )
+            if stretched is None:
+                return GdkPixbuf.Pixbuf.new(
+                    GdkPixbuf.Colorspace.RGB, True, 8, width, height
+                )
+            return stretched
 
         offset_x = max(0, (scaled_w - width) // 2)
         offset_y = max(0, (scaled_h - height) // 2)
-        return GdkPixbuf.Pixbuf.new_subpixbuf(
+        cropped = GdkPixbuf.Pixbuf.new_subpixbuf(
             scaled, offset_x, offset_y, width, height
         )
+        if cropped is None:
+            return scaled
+        return cropped
+
+    def _log_thumbnail_error(self, path: Path, exc: Exception) -> None:
+        logger = getattr(self, "_log", None)
+        message = f"Thumbnail failed for {path}: {exc}"
+        if callable(logger):
+            logger(message)
+        else:
+            print(message, flush=True)

@@ -98,12 +98,28 @@ class WallflowDaemon:
             return
         env = os.environ.copy()
         env["KWIMY_WALLFLOW_UI"] = "1"
-        proc = subprocess.Popen(
-            [sys.executable, "-m", "kwimy_wallflow", "--ui"],
-            env=env,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-        )
+        log_path = RUNTIME_DIR / "ui.log"
+        try:
+            log_path.parent.mkdir(parents=True, exist_ok=True)
+        except OSError:
+            log_path = None
+        if log_path:
+            with log_path.open("ab") as log:
+                log.write(b"\n--- kwimy-wallflow ui start ---\n")
+                log.flush()
+                proc = subprocess.Popen(
+                    [sys.executable, "-m", "kwimy_wallflow", "--ui"],
+                    env=env,
+                    stdout=log,
+                    stderr=log,
+                )
+        else:
+            proc = subprocess.Popen(
+                [sys.executable, "-m", "kwimy_wallflow", "--ui"],
+                env=env,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
         self._write_ui_pid(proc.pid)
 
     def _hide_ui(self) -> None:

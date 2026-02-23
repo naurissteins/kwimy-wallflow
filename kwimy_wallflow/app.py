@@ -648,7 +648,9 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             self._flowbox.append(child)
 
         self._load_index = end
-        return self._load_index < len(self._wallpaper_paths)
+        if self._load_index < len(self._wallpaper_paths):
+            GLib.idle_add(self._load_next_batch)
+        return False
 
     def _reload_content(self) -> None:
         self._needs_reload = False
@@ -745,6 +747,9 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
                 )
             )
             return
+        self._log(
+            f"wallpapers found: {len(self._wallpaper_paths)} in {wallpaper_dir}"
+        )
 
         flowbox = Gtk.FlowBox()
         flowbox.set_selection_mode(Gtk.SelectionMode.NONE)
@@ -753,13 +758,36 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             flowbox.set_orientation(Gtk.Orientation.VERTICAL)
         else:
             flowbox.set_orientation(Gtk.Orientation.HORIZONTAL)
+        flowbox.set_valign(Gtk.Align.START)
+        flowbox.set_halign(Gtk.Align.START)
         flowbox.set_max_children_per_line(6)
         flowbox.set_column_spacing(12)
         flowbox.set_row_spacing(12)
         flowbox.add_css_class("wallflow-grid")
+        if (
+            self._panel_mode
+            and self._scroll_direction == "vertical"
+            and self._panel_edge in {"left", "right"}
+        ):
+            flowbox.set_max_children_per_line(1)
+            flowbox.set_min_children_per_line(1)
+            flowbox.set_homogeneous(True)
+            flowbox.set_halign(Gtk.Align.FILL)
+            flowbox.set_hexpand(True)
         self._attach_navigation(flowbox)
         self._flowbox = flowbox
-        scroller.set_child(flowbox)
+        viewport_box = Gtk.Box(
+            orientation=Gtk.Orientation.VERTICAL
+            if self._scroll_direction != "horizontal"
+            else Gtk.Orientation.HORIZONTAL
+        )
+        viewport_box.set_valign(Gtk.Align.START)
+        viewport_box.set_halign(Gtk.Align.START)
+        viewport_box.set_hexpand(True)
+        viewport_box.set_vexpand(True)
+        viewport_box.add_css_class("wallflow-viewport")
+        viewport_box.append(flowbox)
+        scroller.set_child(viewport_box)
 
         if not self.config.mouse_enabled:
             flowbox.set_activate_on_single_click(False)
