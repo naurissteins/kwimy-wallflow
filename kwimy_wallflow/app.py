@@ -657,9 +657,39 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._init_thumbnail_loader()
         if not self._wallpaper_paths:
             wallpaper_dir = Path(self.config.wallpaper_dir).expanduser()
+            if not wallpaper_dir.exists():
+                if self._scroller:
+                    self._scroller.set_child(
+                    self._build_empty_state(
+                        "Wallpaper folder not found",
+                        f"{wallpaper_dir}\nSet a valid path in ~/.config/kwimy-wallflow/config.json",
+                    )
+                )
+                self._flowbox = None
+                return
             self._wallpaper_paths = list_wallpapers(wallpaper_dir)
+            if not self._wallpaper_paths:
+                if self._scroller:
+                    self._scroller.set_child(
+                    self._build_empty_state(
+                        "No wallpapers found",
+                        f"Add images to {wallpaper_dir}\nSupported: jpg, jpeg, png, webp, bmp, gif",
+                    )
+                )
+                self._flowbox = None
+                return
         self._load_index = 0
         GLib.idle_add(self._load_next_batch)
+
+    @staticmethod
+    def _build_empty_state(title: str, subtitle: str) -> Gtk.Widget:
+        page = Adw.StatusPage()
+        page.set_title(title)
+        page.set_description(subtitle)
+        page.add_css_class("wallflow-empty")
+        page.set_hexpand(True)
+        page.set_vexpand(True)
+        return page
 
     def _build_content(self) -> None:
         if not self._window or not self.config:
@@ -670,6 +700,51 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             header.set_title_widget(Gtk.Label(label="Kwimy Wallflow"))
             header.add_css_class("wallflow-header")
             toolbar_view.add_top_bar(header)
+
+        scroller = Gtk.ScrolledWindow()
+        scroller.add_css_class("wallflow-scroller")
+        if self._scroll_direction == "horizontal":
+            scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER)
+        else:
+            scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self._scroller = scroller
+
+        if not self.config.mouse_enabled:
+            scroller.set_can_target(False)
+        scroller.set_margin_top(max(0, int(self.config.content_inset_top)))
+        scroller.set_margin_bottom(max(0, int(self.config.content_inset_bottom)))
+        scroller.set_margin_start(max(0, int(self.config.content_inset_left)))
+        scroller.set_margin_end(max(0, int(self.config.content_inset_right)))
+
+        toast_overlay = Adw.ToastOverlay()
+        toast_overlay.set_child(scroller)
+        self._toast_overlay = toast_overlay
+
+        toolbar_view.set_content(toast_overlay)
+        self._window.set_content(toolbar_view)
+
+        wallpaper_dir = Path(self.config.wallpaper_dir).expanduser()
+        if not wallpaper_dir.exists():
+            self._flowbox = None
+            self._wallpaper_paths = []
+            scroller.set_child(
+                self._build_empty_state(
+                    "Wallpaper folder not found",
+                    f"{wallpaper_dir}\nSet a valid path in ~/.config/kwimy-wallflow/config.json",
+                )
+            )
+            return
+
+        self._wallpaper_paths = list_wallpapers(wallpaper_dir)
+        if not self._wallpaper_paths:
+            self._flowbox = None
+            scroller.set_child(
+                self._build_empty_state(
+                    "No wallpapers found",
+                    f"Add images to {wallpaper_dir}\nSupported: jpg, jpeg, png, webp, bmp, gif",
+                )
+            )
+            return
 
         flowbox = Gtk.FlowBox()
         flowbox.set_selection_mode(Gtk.SelectionMode.NONE)
@@ -684,35 +759,13 @@ class WallflowApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         flowbox.add_css_class("wallflow-grid")
         self._attach_navigation(flowbox)
         self._flowbox = flowbox
-
-        scroller = Gtk.ScrolledWindow()
         scroller.set_child(flowbox)
-        scroller.add_css_class("wallflow-scroller")
-        if self._scroll_direction == "horizontal":
-            scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER)
-        else:
-            scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self._scroller = scroller
 
         if not self.config.mouse_enabled:
             flowbox.set_activate_on_single_click(False)
             flowbox.set_can_target(False)
-            scroller.set_can_target(False)
-        scroller.set_margin_top(max(0, int(self.config.content_inset_top)))
-        scroller.set_margin_bottom(max(0, int(self.config.content_inset_bottom)))
-        scroller.set_margin_start(max(0, int(self.config.content_inset_left)))
-        scroller.set_margin_end(max(0, int(self.config.content_inset_right)))
-
-        toast_overlay = Adw.ToastOverlay()
-        toast_overlay.set_child(scroller)
-        self._toast_overlay = toast_overlay
-
-        toolbar_view.set_content(toast_overlay)
-        self._window.set_content(toolbar_view)
 
         self._init_thumbnail_loader()
-        wallpaper_dir = Path(self.config.wallpaper_dir).expanduser()
-        self._wallpaper_paths = list_wallpapers(wallpaper_dir)
         self._load_index = 0
         GLib.idle_add(self._load_next_batch)
 

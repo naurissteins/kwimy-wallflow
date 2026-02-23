@@ -20,6 +20,10 @@ window {
     padding: 0 16px;
 }
 
+.wallflow-empty {
+    padding: 32px;
+}
+
 .wallflow-card {
     background: rgba(255, 255, 255, 0.04);
     border-radius: 14px;
