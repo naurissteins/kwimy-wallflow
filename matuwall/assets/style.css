@@ -18,29 +18,26 @@ window {
 
 .matuwall-grid {
     padding: 16px;
-    padding-top: 16px;
-    padding-bottom: 16px;
 }
 
 gridview {
     background: transparent;
 }
 
-griditem {
-    margin: 6px;
-    padding: 6px;
-    background: transparent;
-    border-radius: 14px;
-    transition: all 200ms ease-out;
-}
-
-griditem:hover {
+gridview child {
+    padding: 0;
+    margin: 0;
     background: transparent;
 }
 
-griditem:selected .matuwall-card {
+gridview child:selected .matuwall-card {
     border-color: rgba(255, 255, 255, 0.35);
     background: rgba(255, 255, 255, 0.12);
+}
+
+gridview child:hover .matuwall-card {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
 }
 
 .matuwall-viewport {
@@ -56,22 +53,13 @@ griditem:selected .matuwall-card {
     border-radius: 14px;
     border: 1px solid rgba(255, 255, 255, 0.05);
     padding: 8px;
+    margin: 12px;
     transition: all 200ms ease-out;
-}
-
-griditem:hover .matuwall-card {
-    border-color: rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.08);
 }
 
 .matuwall-thumb-spinner {
     min-width: 24px;
     min-height: 24px;
-}
-
-flowboxchild:hover .matuwall-card {
-    border-color: rgba(255, 255, 255, 0.2);
-    background: rgba(255, 255, 255, 0.08);
 }
 
 .matuwall-thumb {
