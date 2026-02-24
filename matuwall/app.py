@@ -33,6 +33,7 @@ from .paths import (
     UI_PID_FILE_PATH,
     USER_CSS_PATH,
 )
+from .ui.models import WallpaperItem
 from .ui.navigation import NavigationMixin
 from .ui.thumbnails import ThumbnailMixin
 from .wallpapers import list_wallpapers
@@ -44,7 +45,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
     CARD_PADDING = 8
     CARD_BORDER = 1
     GRID_SPACING = 12
-    SIZE_SAFETY = 4
+    SIZE_SAFETY = 8
     HEADER_HEIGHT = 48
 
     def __init__(self) -> None:
@@ -55,14 +56,12 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self.config: AppConfig | None = None
         self._wallpaper_paths: list[Path] = []
         self._load_index = 0
-        self._selected_child: Gtk.FlowBoxChild | None = None
-        self._selected_index: int = -1
-        self._flowbox: Gtk.FlowBox | None = None
+        self._grid_view: Gtk.GridView | None = None
+        self._list_store: Gio.ListStore | None = None
         self._scroller: Gtk.ScrolledWindow | None = None
         self._toast_overlay: Adw.ToastOverlay | None = None
         self._window: Adw.ApplicationWindow | None = None
         self._scroll_direction: str = "vertical"
-        self._scroll_wrap = False
         self._panel_mode = False
         self._panel_edge: str = "left"
         self._panel_size: int = 420
@@ -154,8 +153,8 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         if self._panel_mode and self._backdrop_enabled:
             self._show_backdrop()
         self._window.present()
-        if self._flowbox:
-            self._flowbox.grab_focus()
+        if self._grid_view:
+            self._grid_view.grab_focus()
         if self._panel_mode:
             GLib.idle_add(self._refresh_layer_shell)
 
@@ -297,7 +296,6 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             return
 
         self.config = load_config()
-        self._scroll_wrap = bool(self.config.infinite_scroll)
         self._panel_mode = bool(self.config.panel_mode and LayerShell is not None)
         if self._panel_mode and not self._is_wayland():
             self._panel_mode = False
@@ -671,6 +669,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         height = (
             rows * item_height
             + max(0, rows - 1) * self.GRID_SPACING
+            + self.GRID_PADDING * 2
         )
         height += self.SIZE_SAFETY
         if self.config.window_decorations:
@@ -725,14 +724,13 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         )
 
     def _load_next_batch(self) -> bool:
-        if not self._flowbox or not self.config:
+        if self._list_store is None or not self.config:
             return False
 
         batch_size = max(1, self.config.batch_size)
         end = min(len(self._wallpaper_paths), self._load_index + batch_size)
         for path in self._wallpaper_paths[self._load_index : end]:
-            child = self._build_wallpaper_card(path)
-            self._flowbox.append(child)
+            self._list_store.append(WallpaperItem(path))
 
         self._load_index = end
         if self._load_index < len(self._wallpaper_paths):
@@ -744,29 +742,33 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         if not self.config:
             return
         self._init_thumbnail_loader()
+        if self._list_store:
+            self._list_store.remove_all()
+        
+        wallpaper_dir = Path(self.config.wallpaper_dir).expanduser()
+        if not wallpaper_dir.exists():
+            if self._scroller:
+                self._scroller.set_child(
+                self._build_empty_state(
+                    "Wallpaper folder not found",
+                    f"{wallpaper_dir}\nSet a valid path in ~/.config/matuwall/config.json",
+                )
+            )
+            self._grid_view = None
+            return
+        
+        self._wallpaper_paths = list_wallpapers(wallpaper_dir)
         if not self._wallpaper_paths:
-            wallpaper_dir = Path(self.config.wallpaper_dir).expanduser()
-            if not wallpaper_dir.exists():
-                if self._scroller:
-                    self._scroller.set_child(
-                    self._build_empty_state(
-                        "Wallpaper folder not found",
-                        f"{wallpaper_dir}\nSet a valid path in ~/.config/matuwall/config.json",
-                    )
+            if self._scroller:
+                self._scroller.set_child(
+                self._build_empty_state(
+                    "No wallpapers found",
+                    f"Add images to {wallpaper_dir}\nSupported: jpg, jpeg, png, webp, bmp, gif",
                 )
-                self._flowbox = None
-                return
-            self._wallpaper_paths = list_wallpapers(wallpaper_dir)
-            if not self._wallpaper_paths:
-                if self._scroller:
-                    self._scroller.set_child(
-                    self._build_empty_state(
-                        "No wallpapers found",
-                        f"Add images to {wallpaper_dir}\nSupported: jpg, jpeg, png, webp, bmp, gif",
-                    )
-                )
-                self._flowbox = None
-                return
+            )
+            self._grid_view = None
+            return
+            
         self._load_index = 0
         GLib.idle_add(self._load_next_batch)
 
@@ -803,8 +805,6 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         if not self.config.mouse_enabled:
             scroller.set_can_target(False)
         scroller.set_can_focus(True)
-        if self._scroll_wrap:
-            self._attach_scroll_wrap(scroller)
 
         toast_overlay = Adw.ToastOverlay()
         toast_overlay.set_child(scroller)
@@ -815,7 +815,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
 
         wallpaper_dir = Path(self.config.wallpaper_dir).expanduser()
         if not wallpaper_dir.exists():
-            self._flowbox = None
+            self._grid_view = None
             self._wallpaper_paths = []
             scroller.set_child(
                 self._build_empty_state(
@@ -827,7 +827,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
 
         self._wallpaper_paths = list_wallpapers(wallpaper_dir)
         if not self._wallpaper_paths:
-            self._flowbox = None
+            self._grid_view = None
             scroller.set_child(
                 self._build_empty_state(
                     "No wallpapers found",
@@ -839,56 +839,85 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             f"wallpapers found: {len(self._wallpaper_paths)} in {wallpaper_dir}"
         )
 
-        flowbox = Gtk.FlowBox()
-        flowbox.set_selection_mode(Gtk.SelectionMode.NONE)
-        flowbox.set_activate_on_single_click(True)
+        self._list_store = Gio.ListStore.new(WallpaperItem)
+        selection_model = Gtk.SingleSelection.new(self._list_store)
+        selection_model.connect("selection-changed", self._on_selection_changed)
+
+        factory = Gtk.SignalListItemFactory()
+        factory.connect("setup", self._on_factory_setup)
+        factory.connect("bind", self._on_factory_bind)
+
+        grid_view = Gtk.GridView(model=selection_model, factory=factory)
         if self._scroll_direction == "horizontal":
-            flowbox.set_orientation(Gtk.Orientation.VERTICAL)
+            grid_view.set_orientation(Gtk.Orientation.HORIZONTAL)
         else:
-            flowbox.set_orientation(Gtk.Orientation.HORIZONTAL)
-        flowbox.set_valign(Gtk.Align.START)
-        flowbox.set_halign(Gtk.Align.START)
-        flowbox.set_max_children_per_line(6)
-        flowbox.set_column_spacing(12)
-        flowbox.set_row_spacing(12)
-        flowbox.add_css_class("matuwall-grid")
+            grid_view.set_orientation(Gtk.Orientation.VERTICAL)
+        
+        grid_view.set_valign(Gtk.Align.START)
+        grid_view.set_halign(Gtk.Align.FILL)
+        grid_view.add_css_class("matuwall-grid")
+        
         if not self._panel_mode and self.config:
             cols = max(1, int(self.config.window_grid_cols))
-            flowbox.set_min_children_per_line(cols)
-            flowbox.set_max_children_per_line(cols)
-            flowbox.set_homogeneous(True)
+            grid_view.set_min_columns(cols)
+            grid_view.set_max_columns(cols)
+            grid_view.set_enable_rubberband(True)
+        
         if (
             self._panel_mode
             and self._scroll_direction == "vertical"
             and self._panel_edge in {"left", "right"}
         ):
-            flowbox.set_max_children_per_line(1)
-            flowbox.set_min_children_per_line(1)
-            flowbox.set_homogeneous(True)
-            flowbox.set_halign(Gtk.Align.FILL)
-            flowbox.set_hexpand(True)
-        self._attach_navigation(flowbox)
-        self._flowbox = flowbox
+            grid_view.set_max_columns(1)
+            grid_view.set_min_columns(1)
+            grid_view.set_halign(Gtk.Align.FILL)
+            grid_view.set_hexpand(True)
+
+        grid_view.connect("activate", self._on_grid_item_activated)
+        self._attach_navigation(grid_view)
+        
+        self._grid_view = grid_view
         viewport_box = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL
             if self._scroll_direction != "horizontal"
             else Gtk.Orientation.HORIZONTAL
         )
         viewport_box.set_valign(Gtk.Align.START)
-        viewport_box.set_halign(Gtk.Align.START)
+        viewport_box.set_halign(Gtk.Align.FILL)
         viewport_box.set_hexpand(True)
         viewport_box.set_vexpand(True)
         viewport_box.add_css_class("matuwall-viewport")
-        viewport_box.append(flowbox)
+        viewport_box.append(grid_view)
         scroller.set_child(viewport_box)
 
         if not self.config.mouse_enabled:
-            flowbox.set_activate_on_single_click(False)
-            flowbox.set_can_target(False)
+            grid_view.set_can_target(False)
 
         self._init_thumbnail_loader()
         self._load_index = 0
         GLib.idle_add(self._load_next_batch)
+
+    def _on_factory_setup(self, _factory, list_item: Gtk.ListItem) -> None:
+        # We'll build the widget in bind because we need the path
+        pass
+
+    def _on_factory_bind(self, _factory, list_item: Gtk.ListItem) -> None:
+        item = list_item.get_item()
+        if not item:
+            return
+        widget = self._build_wallpaper_card_widget(item.path)
+        list_item.set_child(widget)
+        # Handle selection visual state via CSS on GtkListItem
+
+    def _on_selection_changed(self, model: Gtk.SingleSelection, _position, _n_items) -> None:
+        # In GridView, selection is often handled by CSS on the ListItem
+        pass
+
+    def _on_grid_item_activated(self, _grid_view, position: int) -> None:
+        if self._list_store:
+            item = self._list_store.get_item(position)
+            if item:
+                self._run_matugen(item.path)
 
     def _run_matugen(self, path: Path) -> None:
         if not self.config:
@@ -944,46 +973,6 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 1
         )
         self._scrollbar_css_applied = True
-
-    def _attach_scroll_wrap(self, scroller: Gtk.ScrolledWindow) -> None:
-        controller = Gtk.EventControllerScroll.new(
-            Gtk.EventControllerScrollFlags.BOTH_AXES
-        )
-        controller.connect("scroll", self._on_scroll_wrap)
-        scroller.add_controller(controller)
-
-    def _on_scroll_wrap(
-        self,
-        _controller: Gtk.EventControllerScroll,
-        dx: float,
-        dy: float,
-    ) -> bool:
-        if not self._scroll_wrap or not self._scroller:
-            return False
-        if self._scroll_direction == "horizontal":
-            adjustment = self._scroller.get_hadjustment()
-            delta = dx if dx != 0 else dy
-        else:
-            adjustment = self._scroller.get_vadjustment()
-            delta = dy
-
-        if not adjustment or delta == 0:
-            return False
-
-        lower = adjustment.get_lower()
-        upper = adjustment.get_upper()
-        page = adjustment.get_page_size()
-        value = adjustment.get_value()
-        max_value = max(lower, upper - page)
-        epsilon = 1.0
-
-        if delta > 0 and value >= max_value - epsilon:
-            adjustment.set_value(lower)
-            return True
-        if delta < 0 and value <= lower + epsilon:
-            adjustment.set_value(max_value)
-            return True
-        return False
 
     @staticmethod
     def _log(message: str) -> None:

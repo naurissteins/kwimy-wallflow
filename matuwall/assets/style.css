@@ -18,6 +18,29 @@ window {
 
 .matuwall-grid {
     padding: 16px;
+    padding-top: 16px;
+    padding-bottom: 16px;
+}
+
+gridview {
+    background: transparent;
+}
+
+griditem {
+    margin: 6px;
+    padding: 6px;
+    background: transparent;
+    border-radius: 14px;
+    transition: all 200ms ease-out;
+}
+
+griditem:hover {
+    background: transparent;
+}
+
+griditem:selected .matuwall-card {
+    border-color: rgba(255, 255, 255, 0.35);
+    background: rgba(255, 255, 255, 0.12);
 }
 
 .matuwall-viewport {
@@ -33,32 +56,12 @@ window {
     border-radius: 14px;
     border: 1px solid rgba(255, 255, 255, 0.05);
     padding: 8px;
+    transition: all 200ms ease-out;
 }
 
-flowboxchild {
-    background: transparent;
-    border-radius: 14px;
-}
-
-flowboxchild:hover {
-    background: transparent;
-    box-shadow: none;
-}
-
-flowboxchild:focus,
-flowboxchild:focus-within {
-    background: transparent;
-    box-shadow: none;
-}
-
-flowboxchild:selected .matuwall-card {
-    border-color: rgba(255, 255, 255, 0.35);
-    background: rgba(255, 255, 255, 0.12);
-}
-
-.matuwall-selected {
-    border-color: rgba(255, 255, 255, 0.35);
-    background: rgba(255, 255, 255, 0.12);
+griditem:hover .matuwall-card {
+    border-color: rgba(255, 255, 255, 0.2);
+    background: rgba(255, 255, 255, 0.08);
 }
 
 .matuwall-thumb-spinner {

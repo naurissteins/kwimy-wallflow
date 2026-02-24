@@ -31,10 +31,9 @@ class ThumbnailMixin:
             executor.shutdown(wait=False)
             self._thumb_executor = None
 
-    def _build_wallpaper_card(self, path: Path) -> Gtk.Widget:
+    def _build_wallpaper_card_widget(self, path: Path) -> Gtk.Widget:
         box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
         box.add_css_class("matuwall-card")
-        box.set_focusable(False)
 
         thumb, cached = self._load_thumbnail_cached(path)
         picture = Gtk.Picture.new_for_paintable(thumb)
@@ -56,20 +55,15 @@ class ThumbnailMixin:
         box.append(thumb_overlay)
         # Filenames are intentionally hidden.
 
-        child = Gtk.FlowBoxChild()
-        child.set_child(box)
-        child.wallpaper_path = str(path)
         if self._panel_full_width_enabled():
-            child.set_hexpand(True)
-            child.set_halign(Gtk.Align.FILL)
             box.set_hexpand(True)
             box.set_halign(Gtk.Align.FILL)
             thumb_overlay.set_hexpand(True)
             thumb_overlay.set_halign(Gtk.Align.FILL)
             picture.set_hexpand(True)
             picture.set_halign(Gtk.Align.FILL)
+        
         if self.config and not self.config.mouse_enabled:
-            child.set_can_target(False)
             box.set_can_target(False)
 
         if not cached:
@@ -77,7 +71,7 @@ class ThumbnailMixin:
             spinner.start()
             self._queue_thumbnail_load(path, picture, spinner)
 
-        return child
+        return box
 
     def _load_thumbnail_cached(self, path: Path) -> tuple[Gdk.Texture, bool]:
         if not self.config:
