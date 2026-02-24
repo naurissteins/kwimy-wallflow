@@ -44,8 +44,8 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
     GRID_PADDING = 16
     CARD_PADDING = 8
     CARD_BORDER = 1
-    GRID_SPACING = 12
-    SIZE_SAFETY = 8
+    CARD_MARGIN = 12
+    SIZE_SAFETY = 0
     HEADER_HEIGHT = 48
 
     def __init__(self) -> None:
@@ -290,7 +290,6 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         if self._backdrop_window:
             self._backdrop_window.hide()
 
-
     def _ensure_window(self) -> None:
         if self._window:
             return
@@ -323,9 +322,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._panel_size_pct = panel_size_pct
         self._panel_margins = panel_margins
         self._backdrop_enabled = bool(self.config.backdrop_enabled)
-        self._backdrop_opacity = max(
-            0.0, min(1.0, float(self.config.backdrop_opacity))
-        )
+        self._backdrop_opacity = max(0.0, min(1.0, float(self.config.backdrop_opacity)))
         self._backdrop_click_to_close = bool(self.config.backdrop_click_to_close)
         self._keep_ui_alive = bool(self.config.keep_ui_alive)
         if (
@@ -451,9 +448,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             pass
         LayerShell.set_layer(window, LayerShell.Layer.TOP)
         LayerShell.set_keyboard_mode(window, LayerShell.KeyboardMode.ON_DEMAND)
-        LayerShell.set_exclusive_zone(
-            window, int(self.config.panel_exclusive_zone)
-        )
+        LayerShell.set_exclusive_zone(window, int(self.config.panel_exclusive_zone))
 
         LayerShell.set_anchor(window, LayerShell.Edge.LEFT, False)
         LayerShell.set_anchor(window, LayerShell.Edge.RIGHT, False)
@@ -466,9 +461,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         LayerShell.set_margin(window, LayerShell.Edge.RIGHT, margin_right)
 
         monitor_width, monitor_height = self._get_primary_monitor_size()
-        self._log(
-            "layer_shell monitor size: %sx%s" % (monitor_width, monitor_height)
-        )
+        self._log("layer_shell monitor size: %sx%s" % (monitor_width, monitor_height))
 
         target_width, target_height = self._panel_target_size(
             panel_edge,
@@ -607,9 +600,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         return int(max(1, width)), int(max(1, height))
 
     @staticmethod
-    def _apply_panel_size_hint(
-        window: Gtk.Window, width: int, height: int
-    ) -> None:
+    def _apply_panel_size_hint(window: Gtk.Window, width: int, height: int) -> None:
         if width > 0 and height > 0:
             try:
                 window.set_default_size(int(width), int(height))
@@ -634,14 +625,12 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             size = (
                 base_width
                 + self.GRID_PADDING * 2
-                + self.CARD_PADDING * 2
-                + self.CARD_BORDER * 2
+                + (self.CARD_PADDING + self.CARD_BORDER + self.CARD_MARGIN) * 2
             )
         else:
             size = (
                 base_height
-                + self.CARD_PADDING * 2
-                + self.CARD_BORDER * 2
+                + (self.CARD_PADDING + self.CARD_BORDER + self.CARD_MARGIN) * 2
             )
         return max(1, int(size))
 
@@ -657,20 +646,17 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         else:
             thumb_height = max(1, int(thumb_width * self.LANDSCAPE_RATIO))
 
-        item_width = thumb_width + self.CARD_PADDING * 2 + self.CARD_BORDER * 2
-        item_height = thumb_height + self.CARD_PADDING * 2 + self.CARD_BORDER * 2
+        item_outer_width = (
+            thumb_width + (self.CARD_PADDING + self.CARD_BORDER + self.CARD_MARGIN) * 2
+        )
+        item_outer_height = (
+            thumb_height + (self.CARD_PADDING + self.CARD_BORDER + self.CARD_MARGIN) * 2
+        )
 
-        width = (
-            cols * item_width
-            + max(0, cols - 1) * self.GRID_SPACING
-            + self.GRID_PADDING * 2
-        )
+        width = cols * item_outer_width + self.GRID_PADDING * 2
+        height = rows * item_outer_height + self.GRID_PADDING * 2
+
         width += self.SIZE_SAFETY
-        height = (
-            rows * item_height
-            + max(0, rows - 1) * self.GRID_SPACING
-            + self.GRID_PADDING * 2
-        )
         height += self.SIZE_SAFETY
         if self.config.window_decorations:
             height += self.HEADER_HEIGHT
@@ -683,6 +669,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             height = min(height, int(monitor_height * 0.8))
 
         return max(1, int(width)), max(1, int(height))
+
     @staticmethod
     def _get_primary_monitor_size() -> tuple[int, int]:
         display = Gdk.Display.get_default()
@@ -744,31 +731,31 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._init_thumbnail_loader()
         if self._list_store:
             self._list_store.remove_all()
-        
+
         wallpaper_dir = Path(self.config.wallpaper_dir).expanduser()
         if not wallpaper_dir.exists():
             if self._scroller:
                 self._scroller.set_child(
-                self._build_empty_state(
-                    "Wallpaper folder not found",
-                    f"{wallpaper_dir}\nSet a valid path in ~/.config/matuwall/config.json",
+                    self._build_empty_state(
+                        "Wallpaper folder not found",
+                        f"{wallpaper_dir}\nSet a valid path in ~/.config/matuwall/config.json",
+                    )
                 )
-            )
             self._grid_view = None
             return
-        
+
         self._wallpaper_paths = list_wallpapers(wallpaper_dir)
         if not self._wallpaper_paths:
             if self._scroller:
                 self._scroller.set_child(
-                self._build_empty_state(
-                    "No wallpapers found",
-                    f"Add images to {wallpaper_dir}\nSupported: jpg, jpeg, png, webp, bmp, gif",
+                    self._build_empty_state(
+                        "No wallpapers found",
+                        f"Add images to {wallpaper_dir}\nSupported: jpg, jpeg, png, webp, bmp, gif",
+                    )
                 )
-            )
             self._grid_view = None
             return
-            
+
         self._load_index = 0
         GLib.idle_add(self._load_next_batch)
 
@@ -835,9 +822,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
                 )
             )
             return
-        self._log(
-            f"wallpapers found: {len(self._wallpaper_paths)} in {wallpaper_dir}"
-        )
+        self._log(f"wallpapers found: {len(self._wallpaper_paths)} in {wallpaper_dir}")
 
         self._list_store = Gio.ListStore.new(WallpaperItem)
         selection_model = Gtk.SingleSelection.new(self._list_store)
@@ -852,17 +837,17 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             grid_view.set_orientation(Gtk.Orientation.HORIZONTAL)
         else:
             grid_view.set_orientation(Gtk.Orientation.VERTICAL)
-        
+
         grid_view.set_valign(Gtk.Align.START)
         grid_view.set_halign(Gtk.Align.FILL)
         grid_view.add_css_class("matuwall-grid")
-        
+
         if not self._panel_mode and self.config:
             cols = max(1, int(self.config.window_grid_cols))
             grid_view.set_min_columns(cols)
             grid_view.set_max_columns(cols)
             grid_view.set_enable_rubberband(True)
-        
+
         if (
             self._panel_mode
             and self._scroll_direction == "vertical"
@@ -875,7 +860,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
 
         grid_view.connect("activate", self._on_grid_item_activated)
         self._attach_navigation(grid_view)
-        
+
         self._grid_view = grid_view
         viewport_box = Gtk.Box(
             orientation=Gtk.Orientation.VERTICAL
@@ -909,7 +894,9 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         list_item.set_child(widget)
         # Handle selection visual state via CSS on GtkListItem
 
-    def _on_selection_changed(self, model: Gtk.SingleSelection, _position, _n_items) -> None:
+    def _on_selection_changed(
+        self, model: Gtk.SingleSelection, _position, _n_items
+    ) -> None:
         # In GridView, selection is often handled by CSS on the ListItem
         pass
 
