@@ -64,7 +64,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._panel_mode = False
         self._panel_edge: str = "left"
         self._panel_size: int = 420
-        self._panel_fit: bool = True
+        self._panel_size_pct: int = 100
         self._panel_margins: tuple[int, int, int, int] = (0, 0, 0, 0)
         self._backdrop_enabled = False
         self._backdrop_opacity = 0.0
@@ -310,7 +310,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         else:
             self._scroll_direction = "vertical"
         panel_size = self._derive_panel_size(panel_edge)
-        panel_fit = bool(self.config.panel_fit_to_screen)
+        panel_size_pct = max(20, min(100, int(self.config.panel_size)))
         panel_margins = (
             max(0, int(self.config.panel_margin_top)),
             max(0, int(self.config.panel_margin_bottom)),
@@ -319,7 +319,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         )
         self._panel_edge = panel_edge
         self._panel_size = panel_size
-        self._panel_fit = panel_fit
+        self._panel_size_pct = panel_size_pct
         self._panel_margins = panel_margins
         self._backdrop_enabled = bool(self.config.backdrop_enabled)
         self._backdrop_opacity = max(
@@ -339,7 +339,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             target_width, target_height = self._panel_target_size(
                 panel_edge,
                 panel_size,
-                panel_fit,
+                panel_size_pct,
                 monitor_width,
                 monitor_height,
                 panel_margins,
@@ -362,16 +362,16 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             self._ensure_backdrop_window()
         if self._panel_mode:
             self._apply_layer_shell(
-                window, panel_edge, panel_size, panel_fit, panel_margins
+                window, panel_edge, panel_size, panel_size_pct, panel_margins
             )
         if self._panel_mode:
             self._log(
-                "panel_mode=%s edge=%s size=%s fit=%s margins=%s backend=%s target=%sx%s"
+                "panel_mode=%s edge=%s size=%s pct=%s margins=%s backend=%s target=%sx%s"
                 % (
                     self._panel_mode,
                     panel_edge,
                     panel_size,
-                    panel_fit,
+                    panel_size_pct,
                     panel_margins,
                     (
                         Gdk.Display.get_default().get_name()
@@ -384,12 +384,12 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             )
         else:
             self._log(
-                "panel_mode=%s edge=%s size=%s fit=%s backend=%s"
+                "panel_mode=%s edge=%s size=%s pct=%s backend=%s"
                 % (
                     self._panel_mode,
                     panel_edge,
                     panel_size,
-                    panel_fit,
+                    panel_size_pct,
                     (
                         Gdk.Display.get_default().get_name()
                         if Gdk.Display.get_default()
@@ -427,7 +427,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         window: Gtk.Window,
         panel_edge: str,
         panel_size: int,
-        fit_to_screen: bool,
+        panel_size_pct: int,
         panel_margins: tuple[int, int, int, int],
     ) -> None:
         if LayerShell is None:
@@ -472,44 +472,60 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         target_width, target_height = self._panel_target_size(
             panel_edge,
             panel_size,
-            fit_to_screen,
+            panel_size_pct,
             monitor_width,
             monitor_height,
             panel_margins,
         )
 
+        size_full = panel_size_pct >= 100
+        if not size_full:
+            if panel_edge in {"left", "right"}:
+                available = max(1, monitor_height - margin_top - margin_bottom)
+                offset = max(0, (available - target_height) // 2)
+                margin_top = margin_top + offset
+                margin_bottom = margin_bottom + offset
+            else:
+                available = max(1, monitor_width - margin_left - margin_right)
+                offset = max(0, (available - target_width) // 2)
+                margin_left = margin_left + offset
+                margin_right = margin_right + offset
+            LayerShell.set_margin(window, LayerShell.Edge.TOP, margin_top)
+            LayerShell.set_margin(window, LayerShell.Edge.BOTTOM, margin_bottom)
+            LayerShell.set_margin(window, LayerShell.Edge.LEFT, margin_left)
+            LayerShell.set_margin(window, LayerShell.Edge.RIGHT, margin_right)
         if panel_edge == "left":
             LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
-            LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
-            if fit_to_screen:
+            if size_full:
+                LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
                 LayerShell.set_anchor(window, LayerShell.Edge.BOTTOM, True)
-                self._set_layer_size(window, target_width, target_height)
             else:
-                self._set_layer_size(window, target_width, target_height)
+                LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
+            self._set_layer_size(window, target_width, target_height)
         elif panel_edge == "right":
             LayerShell.set_anchor(window, LayerShell.Edge.RIGHT, True)
-            LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
-            if fit_to_screen:
+            if size_full:
+                LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
                 LayerShell.set_anchor(window, LayerShell.Edge.BOTTOM, True)
-                self._set_layer_size(window, target_width, target_height)
             else:
-                self._set_layer_size(window, target_width, target_height)
+                LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
+            self._set_layer_size(window, target_width, target_height)
         elif panel_edge == "top":
             LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
-            LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
-            if fit_to_screen:
+            if size_full:
+                LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
                 LayerShell.set_anchor(window, LayerShell.Edge.RIGHT, True)
-                self._set_layer_size(window, target_width, target_height)
             else:
-                self._set_layer_size(window, target_width, target_height)
+                LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
+            self._set_layer_size(window, target_width, target_height)
         else:
             LayerShell.set_anchor(window, LayerShell.Edge.BOTTOM, True)
-            LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
-            if fit_to_screen:
+            if size_full:
+                LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
                 LayerShell.set_anchor(window, LayerShell.Edge.RIGHT, True)
-                self._set_layer_size(window, target_width, target_height)
             else:
-                self._set_layer_size(window, target_width, target_height)
+                LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
+            self._set_layer_size(window, target_width, target_height)
         self._apply_panel_size_hint(window, target_width, target_height)
 
     def _ensure_backdrop_window(self) -> None:
@@ -568,26 +584,25 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
     def _panel_target_size(
         panel_edge: str,
         panel_size: int,
-        fit_to_screen: bool,
+        panel_size_pct: int,
         monitor_width: int,
         monitor_height: int,
         panel_margins: tuple[int, int, int, int],
     ) -> tuple[int, int]:
         margin_top, margin_bottom, margin_left, margin_right = panel_margins
+        pct = max(1, min(100, int(panel_size_pct)))
         if panel_edge in {"left", "right"}:
             width = panel_size
-            height = (
-                monitor_height - margin_top - margin_bottom
-                if fit_to_screen and monitor_height
-                else 1
+            available = (
+                monitor_height - margin_top - margin_bottom if monitor_height else 1
             )
+            height = max(1, int(available * (pct / 100)))
         else:
-            width = (
-                monitor_width - margin_left - margin_right
-                if fit_to_screen and monitor_width
-                else 1
-            )
             height = panel_size
+            available = (
+                monitor_width - margin_left - margin_right if monitor_width else 1
+            )
+            width = max(1, int(available * (pct / 100)))
         return int(max(1, width)), int(max(1, height))
 
     @staticmethod

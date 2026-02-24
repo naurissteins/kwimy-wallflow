@@ -46,6 +46,7 @@ Enable a panel-style window (left/right/top/bottom) using `gtk-layer-shell`:
 ```
 "panel_mode": true,
 "panel_edge": "left",
+"panel_size": 80,
 "panel_margin_top": 30
 ```
 
@@ -95,8 +96,8 @@ Default config:
   "content_inset_right": 0,
   "panel_mode": false,
   "panel_edge": "left",
+  "panel_size": 100,
   "panel_exclusive_zone": -1,
-  "panel_fit_to_screen": true,
   "panel_margin_top": 0,
   "panel_margin_bottom": 0,
   "panel_margin_left": 0,
@@ -130,7 +131,6 @@ If you want to refresh it, delete the file and restart the app and it will be re
 - `batch_size` controls how many thumbnails are appended per UI idle cycle (smaller = smoother, larger = faster fill).
 - `window_grid_cols` / `window_grid_rows` control the default window size based on thumbnail dimensions.
 - `window_grid_max_width_pct` caps the window width as a percentage of the screen (default 80).
-- In panel mode, the scroll direction is picked automatically based on `panel_edge`.
 - `infinite_scroll` wraps the scroll position and keyboard navigation at the ends.
 - `mouse_enabled` toggles pointer interaction (click/hover/scroll).
 - `keep_ui_alive` keeps the UI process running between show/hide (faster open, higher memory).
@@ -141,8 +141,7 @@ If you want to refresh it, delete the file and restart the app and it will be re
 - `content_inset_left` / `content_inset_right` add fixed padding for horizontal inset.
 - `panel_mode` enables layer-shell mode (requires `gtk-layer-shell` with Gtk4 typelibs).
 - `panel_edge` can be `left`, `right`, `top`, `bottom`.
-- Panel size is derived from the thumbnail size and padding.
+- `panel_size` is a percentage (20-100). `100` means full length. Smaller values shrink the panel length and center it.
 - `panel_exclusive_zone` controls reserved space (`-1` = none).
-- `panel_fit_to_screen` stretches the panel to the full screen along the long edge.
 - `panel_margin_top` / `panel_margin_bottom` add margins in pixels (useful to sit under a top bar).
 - `panel_margin_left` / `panel_margin_right` add margins for top/bottom panels.
