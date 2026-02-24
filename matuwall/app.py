@@ -150,7 +150,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             return
         if self._needs_reload:
             self._reload_content()
-        if self._panel_mode and self._backdrop_enabled:
+        if self._backdrop_enabled:
             self._show_backdrop()
         self._window.present()
         if self._grid_view:
@@ -359,7 +359,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._window = window
         if self.config.panel_mode and LayerShell is None:
             self._log("gtk4-layer-shell not available; panel_mode disabled")
-        if self._panel_mode and self._backdrop_enabled:
+        if self._backdrop_enabled:
             self._ensure_backdrop_window()
         if self._panel_mode:
             self._apply_layer_shell(
@@ -408,7 +408,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         if self._keep_ui_alive and os.environ.get("MATUWALL_UI") == "1":
             self._hide_window()
             return True
-        if self._backdrop_enabled:
+        if self._backdrop_enabled and self._backdrop_window:
             self._hide_window()
             return True
         return False
