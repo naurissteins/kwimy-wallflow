@@ -25,10 +25,6 @@ class AppConfig:
     backdrop_enabled: bool
     backdrop_opacity: float
     backdrop_click_to_close: bool
-    content_inset_top: int
-    content_inset_bottom: int
-    content_inset_left: int
-    content_inset_right: int
     panel_mode: bool
     panel_edge: str
     panel_size: int
@@ -56,10 +52,6 @@ DEFAULT_CONFIG = AppConfig(
     backdrop_enabled=False,
     backdrop_opacity=0.0,
     backdrop_click_to_close=True,
-    content_inset_top=0,
-    content_inset_bottom=0,
-    content_inset_left=0,
-    content_inset_right=0,
     panel_mode=False,
     panel_edge="left",
     panel_size=100,
@@ -170,18 +162,6 @@ def load_config() -> AppConfig:
                 DEFAULT_CONFIG.backdrop_click_to_close,
             )
         ),
-        content_inset_top=int(
-            data.get("content_inset_top", DEFAULT_CONFIG.content_inset_top)
-        ),
-        content_inset_bottom=int(
-            data.get("content_inset_bottom", DEFAULT_CONFIG.content_inset_bottom)
-        ),
-        content_inset_left=int(
-            data.get("content_inset_left", DEFAULT_CONFIG.content_inset_left)
-        ),
-        content_inset_right=int(
-            data.get("content_inset_right", DEFAULT_CONFIG.content_inset_right)
-        ),
         panel_mode=bool(data.get("panel_mode", DEFAULT_CONFIG.panel_mode)),
         panel_edge=str(data.get("panel_edge", DEFAULT_CONFIG.panel_edge)),
         panel_size=max(
@@ -225,10 +205,6 @@ def write_config(config: AppConfig) -> None:
         "backdrop_enabled": config.backdrop_enabled,
         "backdrop_opacity": config.backdrop_opacity,
         "backdrop_click_to_close": config.backdrop_click_to_close,
-        "content_inset_top": config.content_inset_top,
-        "content_inset_bottom": config.content_inset_bottom,
-        "content_inset_left": config.content_inset_left,
-        "content_inset_right": config.content_inset_right,
         "panel_mode": config.panel_mode,
         "panel_edge": config.panel_edge,
         "panel_size": config.panel_size,

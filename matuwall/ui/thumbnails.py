@@ -181,11 +181,8 @@ class ThumbnailMixin:
     def _thumbnail_dimensions(self) -> tuple[int, int]:
         width = max(1, self.config.thumbnail_size if self.config else 256)
         if self._panel_full_width_enabled():
-            inset_left = int(self.config.content_inset_left)
-            inset_right = int(self.config.content_inset_right)
             # Match default CSS: grid padding 16px left/right, card padding 8px.
             available = int(getattr(self, "_panel_size", width))
-            available -= inset_left + inset_right
             available -= 32  # grid horizontal padding
             full_width = max(1, available - 16)  # card padding
             width = max(1, full_width)

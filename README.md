@@ -91,10 +91,6 @@ Default config:
   "backdrop_enabled": false,
   "backdrop_opacity": 0.0,
   "backdrop_click_to_close": true,
-  "content_inset_top": 0,
-  "content_inset_bottom": 0,
-  "content_inset_left": 0,
-  "content_inset_right": 0,
   "panel_mode": false,
   "panel_edge": "left",
   "panel_size": 100,
@@ -139,8 +135,6 @@ If you want to refresh it, delete the file and restart the app and it will be re
 - `backdrop_enabled` shows a full-screen transparent layer behind the panel.
 - `backdrop_opacity` controls the backdrop tint (0.0 to 1.0). Note: if click-to-close is enabled, values at 0.0 are clamped to 0.01 so the compositor still delivers input. **(Wayland compositor fully transparent surfaces often don’t receive input events)** I will update when I will find a solution.
 - `backdrop_click_to_close` closes the panel when clicking outside it.
-- `content_inset_top` / `content_inset_bottom` add fixed padding inside the window while scrolling.
-- `content_inset_left` / `content_inset_right` add fixed padding for horizontal inset.
 - `panel_mode` enables layer-shell mode (requires `gtk-layer-shell` with Gtk4 typelibs).
 - `panel_edge` can be `left`, `right`, `top`, `bottom`.
 - `panel_size` is a percentage (20-100). `100` means full length. Smaller values shrink the panel length and center it.

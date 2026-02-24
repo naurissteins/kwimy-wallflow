@@ -632,16 +632,9 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         else:
             base_height = max(1, int(base_width * self.LANDSCAPE_RATIO))
 
-        inset_left = int(self.config.content_inset_left)
-        inset_right = int(self.config.content_inset_right)
-        inset_top = int(self.config.content_inset_top)
-        inset_bottom = int(self.config.content_inset_bottom)
-
         if panel_edge in {"left", "right"}:
             size = (
                 base_width
-                + inset_left
-                + inset_right
                 + self.GRID_PADDING * 2
                 + self.CARD_PADDING * 2
                 + self.CARD_BORDER * 2
@@ -649,8 +642,6 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         else:
             size = (
                 base_height
-                + inset_top
-                + inset_bottom
                 + self.CARD_PADDING * 2
                 + self.CARD_BORDER * 2
             )
@@ -668,11 +659,6 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         else:
             thumb_height = max(1, int(thumb_width * self.LANDSCAPE_RATIO))
 
-        inset_left = int(self.config.content_inset_left)
-        inset_right = int(self.config.content_inset_right)
-        inset_top = int(self.config.content_inset_top)
-        inset_bottom = int(self.config.content_inset_bottom)
-
         item_width = thumb_width + self.CARD_PADDING * 2 + self.CARD_BORDER * 2
         item_height = thumb_height + self.CARD_PADDING * 2 + self.CARD_BORDER * 2
 
@@ -680,15 +666,11 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             cols * item_width
             + max(0, cols - 1) * self.GRID_SPACING
             + self.GRID_PADDING * 2
-            + inset_left
-            + inset_right
         )
         width += self.SIZE_SAFETY
         height = (
             rows * item_height
             + max(0, rows - 1) * self.GRID_SPACING
-            + inset_top
-            + inset_bottom
         )
         height += self.SIZE_SAFETY
         if self.config.window_decorations:
@@ -821,10 +803,6 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         if not self.config.mouse_enabled:
             scroller.set_can_target(False)
         scroller.set_can_focus(True)
-        scroller.set_margin_top(max(0, int(self.config.content_inset_top)))
-        scroller.set_margin_bottom(max(0, int(self.config.content_inset_bottom)))
-        scroller.set_margin_start(max(0, int(self.config.content_inset_left)))
-        scroller.set_margin_end(max(0, int(self.config.content_inset_right)))
         if self._scroll_wrap:
             self._attach_scroll_wrap(scroller)
 
