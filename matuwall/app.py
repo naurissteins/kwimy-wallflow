@@ -40,6 +40,8 @@ from .wallpapers import list_wallpapers
 
 class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
     LANDSCAPE_RATIO = 9 / 16
+    GRID_PADDING = 16
+    CARD_PADDING = 8
 
     def __init__(self) -> None:
         super().__init__(
@@ -290,11 +292,6 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             return
 
         self.config = load_config()
-        self._scroll_direction = (
-            self.config.scroll_direction or "vertical"
-        ).strip().lower()
-        if self._scroll_direction not in {"vertical", "horizontal"}:
-            self._scroll_direction = "vertical"
         self._scroll_wrap = bool(self.config.infinite_scroll)
         self._panel_mode = bool(self.config.panel_mode and LayerShell is not None)
         if self._panel_mode and not self._is_wayland():
@@ -306,7 +303,11 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         panel_edge = str(self.config.panel_edge).strip().lower()
         if panel_edge not in {"left", "right", "top", "bottom"}:
             panel_edge = "left"
-        panel_size = max(1, int(self.config.panel_size))
+        if self._panel_mode and panel_edge in {"top", "bottom"}:
+            self._scroll_direction = "horizontal"
+        else:
+            self._scroll_direction = "vertical"
+        panel_size = self._derive_panel_size(panel_edge)
         panel_fit = bool(self.config.panel_fit_to_screen)
         panel_margins = (
             max(0, int(self.config.panel_margin_top)),
@@ -600,6 +601,38 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
                 window.set_size_request(int(width), int(height))
             except Exception:
                 pass
+
+    def _derive_panel_size(self, panel_edge: str) -> int:
+        if not self.config:
+            return 1
+        base_width = max(1, int(self.config.thumbnail_size))
+        shape = (self.config.thumbnail_shape or "landscape").strip().lower()
+        if shape == "square":
+            base_height = base_width
+        else:
+            base_height = max(1, int(base_width * self.LANDSCAPE_RATIO))
+
+        inset_left = int(self.config.content_inset_left)
+        inset_right = int(self.config.content_inset_right)
+        inset_top = int(self.config.content_inset_top)
+        inset_bottom = int(self.config.content_inset_bottom)
+
+        if panel_edge in {"left", "right"}:
+            size = (
+                base_width
+                + inset_left
+                + inset_right
+                + self.GRID_PADDING * 2
+                + self.CARD_PADDING * 2
+            )
+        else:
+            size = (
+                base_height
+                + inset_top
+                + inset_bottom
+                + self.CARD_PADDING * 2
+            )
+        return max(1, int(size))
     @staticmethod
     def _get_primary_monitor_size() -> tuple[int, int]:
         display = Gdk.Display.get_default()

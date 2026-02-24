@@ -18,7 +18,6 @@ class AppConfig:
     show_filenames: bool
     window_width: int
     window_height: int
-    scroll_direction: str
     infinite_scroll: bool
     mouse_enabled: bool
     keep_ui_alive: bool
@@ -31,7 +30,6 @@ class AppConfig:
     content_inset_right: int
     panel_mode: bool
     panel_edge: str
-    panel_size: int
     panel_exclusive_zone: int
     panel_fit_to_screen: bool
     panel_margin_top: int
@@ -50,7 +48,6 @@ DEFAULT_CONFIG = AppConfig(
     show_filenames=False,
     window_width=900,
     window_height=562,
-    scroll_direction="vertical",
     infinite_scroll=False,
     mouse_enabled=True,
     keep_ui_alive=False,
@@ -63,7 +60,6 @@ DEFAULT_CONFIG = AppConfig(
     content_inset_right=0,
     panel_mode=False,
     panel_edge="left",
-    panel_size=420,
     panel_exclusive_zone=-1,
     panel_fit_to_screen=True,
     panel_margin_top=0,
@@ -135,9 +131,6 @@ def load_config() -> AppConfig:
         show_filenames=bool(data.get("show_filenames", DEFAULT_CONFIG.show_filenames)),
         window_width=int(data.get("window_width", DEFAULT_CONFIG.window_width)),
         window_height=int(data.get("window_height", DEFAULT_CONFIG.window_height)),
-        scroll_direction=str(
-            data.get("scroll_direction", DEFAULT_CONFIG.scroll_direction)
-        ),
         infinite_scroll=bool(
             data.get("infinite_scroll", DEFAULT_CONFIG.infinite_scroll)
         ),
@@ -171,7 +164,6 @@ def load_config() -> AppConfig:
         ),
         panel_mode=bool(data.get("panel_mode", DEFAULT_CONFIG.panel_mode)),
         panel_edge=str(data.get("panel_edge", DEFAULT_CONFIG.panel_edge)),
-        panel_size=int(data.get("panel_size", DEFAULT_CONFIG.panel_size)),
         panel_exclusive_zone=int(
             data.get("panel_exclusive_zone", DEFAULT_CONFIG.panel_exclusive_zone)
         ),
@@ -205,7 +197,6 @@ def write_config(config: AppConfig) -> None:
         "show_filenames": config.show_filenames,
         "window_width": config.window_width,
         "window_height": config.window_height,
-        "scroll_direction": config.scroll_direction,
         "infinite_scroll": config.infinite_scroll,
         "mouse_enabled": config.mouse_enabled,
         "keep_ui_alive": config.keep_ui_alive,
@@ -218,7 +209,6 @@ def write_config(config: AppConfig) -> None:
         "content_inset_right": config.content_inset_right,
         "panel_mode": config.panel_mode,
         "panel_edge": config.panel_edge,
-        "panel_size": config.panel_size,
         "panel_exclusive_zone": config.panel_exclusive_zone,
         "panel_fit_to_screen": config.panel_fit_to_screen,
         "panel_margin_top": config.panel_margin_top,

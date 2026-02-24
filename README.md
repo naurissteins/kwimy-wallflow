@@ -46,7 +46,6 @@ Enable a panel-style window (left/right/top/bottom) using `gtk-layer-shell`:
 ```
 "panel_mode": true,
 "panel_edge": "left",
-"panel_size": 420,
 "panel_margin_top": 30
 ```
 
@@ -84,7 +83,6 @@ Default config:
   "show_filenames": false,
   "window_width": 900,
   "window_height": 600,
-  "scroll_direction": "vertical",
   "infinite_scroll": false,
   "mouse_enabled": true,
   "keep_ui_alive": false,
@@ -97,7 +95,6 @@ Default config:
   "content_inset_right": 0,
   "panel_mode": false,
   "panel_edge": "left",
-  "panel_size": 420,
   "panel_exclusive_zone": -1,
   "panel_fit_to_screen": true,
   "panel_margin_top": 0,
@@ -130,7 +127,7 @@ If you want to refresh it, delete the file and restart the app and it will be re
 - `thumbnail_size` is the width. Height depends on `thumbnail_shape`:
   - `landscape` (default): 16:9
   - `square`: 1:1
-- `scroll_direction` controls whether the grid scrolls vertically or horizontally. Use `vertical` or `horizontal`.
+- In panel mode, the scroll direction is picked automatically based on `panel_edge`.
 - `infinite_scroll` wraps the scroll position and keyboard navigation at the ends.
 - `mouse_enabled` toggles pointer interaction (click/hover/scroll).
 - `keep_ui_alive` keeps the UI process running between show/hide (faster open, higher memory).
@@ -141,7 +138,7 @@ If you want to refresh it, delete the file and restart the app and it will be re
 - `content_inset_left` / `content_inset_right` add fixed padding for horizontal inset.
 - `panel_mode` enables layer-shell mode (requires `gtk-layer-shell` with Gtk4 typelibs).
 - `panel_edge` can be `left`, `right`, `top`, `bottom`.
-- `panel_size` is the fixed width/height used for panel mode.
+- Panel size is derived from the thumbnail size and padding.
 - `panel_exclusive_zone` controls reserved space (`-1` = none).
 - `panel_fit_to_screen` stretches the panel to the full screen along the long edge.
 - `panel_margin_top` / `panel_margin_bottom` add margins in pixels (useful to sit under a top bar).
