@@ -54,12 +54,7 @@ class ThumbnailMixin:
         thumb_overlay.add_overlay(spinner)
 
         box.append(thumb_overlay)
-        if self.config.show_filenames:
-            label = Gtk.Label(label=path.name)
-            label.set_wrap(True)
-            label.set_xalign(0.0)
-            label.add_css_class("matuwall-label")
-            box.append(label)
+        # Filenames are intentionally hidden.
 
         child = Gtk.FlowBoxChild()
         child.set_child(box)

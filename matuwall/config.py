@@ -15,7 +15,6 @@ class AppConfig:
     thumbnail_shape: str
     batch_size: int
     window_decorations: bool
-    show_filenames: bool
     window_width: int
     window_height: int
     infinite_scroll: bool
@@ -45,7 +44,6 @@ DEFAULT_CONFIG = AppConfig(
     thumbnail_shape="landscape",
     batch_size=16,
     window_decorations=False,
-    show_filenames=False,
     window_width=900,
     window_height=562,
     infinite_scroll=False,
@@ -128,7 +126,6 @@ def load_config() -> AppConfig:
         window_decorations=bool(
             data.get("window_decorations", DEFAULT_CONFIG.window_decorations)
         ),
-        show_filenames=bool(data.get("show_filenames", DEFAULT_CONFIG.show_filenames)),
         window_width=int(data.get("window_width", DEFAULT_CONFIG.window_width)),
         window_height=int(data.get("window_height", DEFAULT_CONFIG.window_height)),
         infinite_scroll=bool(
@@ -194,7 +191,6 @@ def write_config(config: AppConfig) -> None:
         "thumbnail_shape": config.thumbnail_shape,
         "batch_size": config.batch_size,
         "window_decorations": config.window_decorations,
-        "show_filenames": config.show_filenames,
         "window_width": config.window_width,
         "window_height": config.window_height,
         "infinite_scroll": config.infinite_scroll,

@@ -80,7 +80,6 @@ Default config:
   "thumbnail_shape": "landscape",
   "batch_size": 16,
   "window_decorations": false,
-  "show_filenames": false,
   "window_width": 900,
   "window_height": 600,
   "infinite_scroll": false,
