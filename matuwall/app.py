@@ -42,7 +42,9 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
     LANDSCAPE_RATIO = 9 / 16
     GRID_PADDING = 16
     CARD_PADDING = 8
+    CARD_BORDER = 1
     GRID_SPACING = 12
+    SIZE_SAFETY = 4
     HEADER_HEIGHT = 48
 
     def __init__(self) -> None:
@@ -642,6 +644,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
                 + inset_right
                 + self.GRID_PADDING * 2
                 + self.CARD_PADDING * 2
+                + self.CARD_BORDER * 2
             )
         else:
             size = (
@@ -649,6 +652,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
                 + inset_top
                 + inset_bottom
                 + self.CARD_PADDING * 2
+                + self.CARD_BORDER * 2
             )
         return max(1, int(size))
 
@@ -669,8 +673,8 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         inset_top = int(self.config.content_inset_top)
         inset_bottom = int(self.config.content_inset_bottom)
 
-        item_width = thumb_width + self.CARD_PADDING * 2
-        item_height = thumb_height + self.CARD_PADDING * 2
+        item_width = thumb_width + self.CARD_PADDING * 2 + self.CARD_BORDER * 2
+        item_height = thumb_height + self.CARD_PADDING * 2 + self.CARD_BORDER * 2
 
         width = (
             cols * item_width
@@ -679,12 +683,14 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             + inset_left
             + inset_right
         )
+        width += self.SIZE_SAFETY
         height = (
             rows * item_height
             + max(0, rows - 1) * self.GRID_SPACING
             + inset_top
             + inset_bottom
         )
+        height += self.SIZE_SAFETY
         if self.config.window_decorations:
             height += self.HEADER_HEIGHT
 
@@ -868,6 +874,11 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         flowbox.set_column_spacing(12)
         flowbox.set_row_spacing(12)
         flowbox.add_css_class("matuwall-grid")
+        if not self._panel_mode and self.config:
+            cols = max(1, int(self.config.window_grid_cols))
+            flowbox.set_min_children_per_line(cols)
+            flowbox.set_max_children_per_line(cols)
+            flowbox.set_homogeneous(True)
         if (
             self._panel_mode
             and self._scroll_direction == "vertical"
