@@ -80,8 +80,9 @@ Default config:
   "thumbnail_shape": "landscape",
   "batch_size": 16,
   "window_decorations": false,
-  "window_width": 900,
-  "window_height": 600,
+  "window_grid_cols": 3,
+  "window_grid_rows": 3,
+  "window_grid_max_width_pct": 80,
   "infinite_scroll": false,
   "mouse_enabled": true,
   "keep_ui_alive": false,
@@ -127,6 +128,8 @@ If you want to refresh it, delete the file and restart the app and it will be re
   - `landscape` (default): 16:9
   - `square`: 1:1
 - `batch_size` controls how many thumbnails are appended per UI idle cycle (smaller = smoother, larger = faster fill).
+- `window_grid_cols` / `window_grid_rows` control the default window size based on thumbnail dimensions.
+- `window_grid_max_width_pct` caps the window width as a percentage of the screen (default 80).
 - In panel mode, the scroll direction is picked automatically based on `panel_edge`.
 - `infinite_scroll` wraps the scroll position and keyboard navigation at the ends.
 - `mouse_enabled` toggles pointer interaction (click/hover/scroll).

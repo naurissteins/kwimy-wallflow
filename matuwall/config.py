@@ -15,8 +15,9 @@ class AppConfig:
     thumbnail_shape: str
     batch_size: int
     window_decorations: bool
-    window_width: int
-    window_height: int
+    window_grid_cols: int
+    window_grid_rows: int
+    window_grid_max_width_pct: int
     infinite_scroll: bool
     mouse_enabled: bool
     keep_ui_alive: bool
@@ -44,8 +45,9 @@ DEFAULT_CONFIG = AppConfig(
     thumbnail_shape="landscape",
     batch_size=16,
     window_decorations=False,
-    window_width=900,
-    window_height=562,
+    window_grid_cols=3,
+    window_grid_rows=3,
+    window_grid_max_width_pct=80,
     infinite_scroll=False,
     mouse_enabled=True,
     keep_ui_alive=False,
@@ -126,8 +128,24 @@ def load_config() -> AppConfig:
         window_decorations=bool(
             data.get("window_decorations", DEFAULT_CONFIG.window_decorations)
         ),
-        window_width=int(data.get("window_width", DEFAULT_CONFIG.window_width)),
-        window_height=int(data.get("window_height", DEFAULT_CONFIG.window_height)),
+        window_grid_cols=max(
+            1, int(data.get("window_grid_cols", DEFAULT_CONFIG.window_grid_cols))
+        ),
+        window_grid_rows=max(
+            1, int(data.get("window_grid_rows", DEFAULT_CONFIG.window_grid_rows))
+        ),
+        window_grid_max_width_pct=max(
+            20,
+            min(
+                100,
+                int(
+                    data.get(
+                        "window_grid_max_width_pct",
+                        DEFAULT_CONFIG.window_grid_max_width_pct,
+                    )
+                ),
+            ),
+        ),
         infinite_scroll=bool(
             data.get("infinite_scroll", DEFAULT_CONFIG.infinite_scroll)
         ),
@@ -191,8 +209,9 @@ def write_config(config: AppConfig) -> None:
         "thumbnail_shape": config.thumbnail_shape,
         "batch_size": config.batch_size,
         "window_decorations": config.window_decorations,
-        "window_width": config.window_width,
-        "window_height": config.window_height,
+        "window_grid_cols": config.window_grid_cols,
+        "window_grid_rows": config.window_grid_rows,
+        "window_grid_max_width_pct": config.window_grid_max_width_pct,
         "infinite_scroll": config.infinite_scroll,
         "mouse_enabled": config.mouse_enabled,
         "keep_ui_alive": config.keep_ui_alive,

@@ -42,6 +42,8 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
     LANDSCAPE_RATIO = 9 / 16
     GRID_PADDING = 16
     CARD_PADDING = 8
+    GRID_SPACING = 12
+    HEADER_HEIGHT = 48
 
     def __init__(self) -> None:
         super().__init__(
@@ -346,9 +348,9 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             window.set_decorated(False)
             window.set_resizable(False)
         else:
-            window.set_default_size(
-                int(self.config.window_width), int(self.config.window_height)
-            )
+            target_width, target_height = self._derive_window_size()
+            window.set_default_size(target_width, target_height)
+            window.set_resizable(False)
         window.set_title("Matuwall")
         if not self._panel_mode:
             window.set_decorated(bool(self.config.window_decorations))
@@ -633,6 +635,51 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
                 + self.CARD_PADDING * 2
             )
         return max(1, int(size))
+
+    def _derive_window_size(self) -> tuple[int, int]:
+        if not self.config:
+            return (900, 600)
+        cols = max(1, int(self.config.window_grid_cols))
+        rows = max(1, int(self.config.window_grid_rows))
+        thumb_width = max(1, int(self.config.thumbnail_size))
+        shape = (self.config.thumbnail_shape or "landscape").strip().lower()
+        if shape == "square":
+            thumb_height = thumb_width
+        else:
+            thumb_height = max(1, int(thumb_width * self.LANDSCAPE_RATIO))
+
+        inset_left = int(self.config.content_inset_left)
+        inset_right = int(self.config.content_inset_right)
+        inset_top = int(self.config.content_inset_top)
+        inset_bottom = int(self.config.content_inset_bottom)
+
+        item_width = thumb_width + self.CARD_PADDING * 2
+        item_height = thumb_height + self.CARD_PADDING * 2
+
+        width = (
+            cols * item_width
+            + max(0, cols - 1) * self.GRID_SPACING
+            + self.GRID_PADDING * 2
+            + inset_left
+            + inset_right
+        )
+        height = (
+            rows * item_height
+            + max(0, rows - 1) * self.GRID_SPACING
+            + inset_top
+            + inset_bottom
+        )
+        if self.config.window_decorations:
+            height += self.HEADER_HEIGHT
+
+        monitor_width, monitor_height = self._get_primary_monitor_size()
+        max_pct = max(20, min(100, int(self.config.window_grid_max_width_pct)))
+        if monitor_width > 0:
+            width = min(width, int(monitor_width * (max_pct / 100)))
+        if monitor_height > 0:
+            height = min(height, int(monitor_height * 0.8))
+
+        return max(1, int(width)), max(1, int(height))
     @staticmethod
     def _get_primary_monitor_size() -> tuple[int, int]:
         display = Gdk.Display.get_default()
