@@ -126,6 +126,7 @@ If you want to refresh it, delete the file and restart the app and it will be re
 - `thumbnail_size` is the width. Height depends on `thumbnail_shape`:
   - `landscape` (default): 16:9
   - `square`: 1:1
+- `batch_size` controls how many thumbnails are appended per UI idle cycle (smaller = smoother, larger = faster fill).
 - In panel mode, the scroll direction is picked automatically based on `panel_edge`.
 - `infinite_scroll` wraps the scroll position and keyboard navigation at the ends.
 - `mouse_enabled` toggles pointer interaction (click/hover/scroll).
