@@ -56,6 +56,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._toast_overlay: Adw.ToastOverlay | None = None
         self._window: Adw.ApplicationWindow | None = None
         self._scroll_direction: str = "vertical"
+        self._scroll_wrap = False
         self._panel_mode = False
         self._panel_edge: str = "left"
         self._panel_size: int = 420
@@ -294,6 +295,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         ).strip().lower()
         if self._scroll_direction not in {"vertical", "horizontal"}:
             self._scroll_direction = "vertical"
+        self._scroll_wrap = bool(self.config.infinite_scroll)
         self._panel_mode = bool(self.config.panel_mode and LayerShell is not None)
         if self._panel_mode and not self._is_wayland():
             self._panel_mode = False
@@ -718,6 +720,8 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         scroller.set_margin_bottom(max(0, int(self.config.content_inset_bottom)))
         scroller.set_margin_start(max(0, int(self.config.content_inset_left)))
         scroller.set_margin_end(max(0, int(self.config.content_inset_right)))
+        if self._scroll_wrap:
+            self._attach_scroll_wrap(scroller)
 
         toast_overlay = Adw.ToastOverlay()
         toast_overlay.set_child(scroller)
@@ -825,6 +829,46 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         if not self._toast_overlay:
             return
         self._toast_overlay.add_toast(Adw.Toast.new(message))
+
+    def _attach_scroll_wrap(self, scroller: Gtk.ScrolledWindow) -> None:
+        controller = Gtk.EventControllerScroll.new(
+            Gtk.EventControllerScrollFlags.BOTH_AXES
+        )
+        controller.connect("scroll", self._on_scroll_wrap)
+        scroller.add_controller(controller)
+
+    def _on_scroll_wrap(
+        self,
+        _controller: Gtk.EventControllerScroll,
+        dx: float,
+        dy: float,
+    ) -> bool:
+        if not self._scroll_wrap or not self._scroller:
+            return False
+        if self._scroll_direction == "horizontal":
+            adjustment = self._scroller.get_hadjustment()
+            delta = dx if dx != 0 else dy
+        else:
+            adjustment = self._scroller.get_vadjustment()
+            delta = dy
+
+        if not adjustment or delta == 0:
+            return False
+
+        lower = adjustment.get_lower()
+        upper = adjustment.get_upper()
+        page = adjustment.get_page_size()
+        value = adjustment.get_value()
+        max_value = max(lower, upper - page)
+        epsilon = 1.0
+
+        if delta > 0 and value >= max_value - epsilon:
+            adjustment.set_value(lower)
+            return True
+        if delta < 0 and value <= lower + epsilon:
+            adjustment.set_value(max_value)
+            return True
+        return False
 
     @staticmethod
     def _log(message: str) -> None:

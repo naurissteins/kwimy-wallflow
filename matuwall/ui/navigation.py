@@ -114,7 +114,13 @@ class NavigationMixin:
             else:
                 index -= stride
 
-        index = max(0, min(index, len(children) - 1))
+        if getattr(self, "_scroll_wrap", False):
+            if index < 0:
+                index = len(children) - 1
+            elif index >= len(children):
+                index = 0
+        else:
+            index = max(0, min(index, len(children) - 1))
         self._set_selected_child(children[index], index)
 
     def _set_selected_child(

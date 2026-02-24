@@ -19,6 +19,7 @@ class AppConfig:
     window_width: int
     window_height: int
     scroll_direction: str
+    infinite_scroll: bool
     mouse_enabled: bool
     keep_ui_alive: bool
     backdrop_enabled: bool
@@ -50,6 +51,7 @@ DEFAULT_CONFIG = AppConfig(
     window_width=900,
     window_height=562,
     scroll_direction="vertical",
+    infinite_scroll=False,
     mouse_enabled=True,
     keep_ui_alive=False,
     backdrop_enabled=False,
@@ -136,6 +138,9 @@ def load_config() -> AppConfig:
         scroll_direction=str(
             data.get("scroll_direction", DEFAULT_CONFIG.scroll_direction)
         ),
+        infinite_scroll=bool(
+            data.get("infinite_scroll", DEFAULT_CONFIG.infinite_scroll)
+        ),
         mouse_enabled=bool(data.get("mouse_enabled", DEFAULT_CONFIG.mouse_enabled)),
         keep_ui_alive=bool(
             data.get("keep_ui_alive", DEFAULT_CONFIG.keep_ui_alive)
@@ -201,6 +206,7 @@ def write_config(config: AppConfig) -> None:
         "window_width": config.window_width,
         "window_height": config.window_height,
         "scroll_direction": config.scroll_direction,
+        "infinite_scroll": config.infinite_scroll,
         "mouse_enabled": config.mouse_enabled,
         "keep_ui_alive": config.keep_ui_alive,
         "backdrop_enabled": config.backdrop_enabled,

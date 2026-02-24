@@ -85,6 +85,7 @@ Default config:
   "window_width": 900,
   "window_height": 600,
   "scroll_direction": "vertical",
+  "infinite_scroll": false,
   "mouse_enabled": true,
   "keep_ui_alive": false,
   "backdrop_enabled": false,
@@ -120,7 +121,8 @@ layerrule = match:namespace matuwall, ignore_alpha 0.5
 ```
 
 ## Styling
-Edit `~/.config/matuwall/style.css` to change background, borders, and typography.
+Edit `~/.config/matuwall/style.css` to change background, borders, and typography. 
+If you want to refresh it, delete the file and restart the app and it will be regenerated from the default template.
 
 ## Notes
 - `matugen` must be available in `PATH`.
@@ -129,6 +131,7 @@ Edit `~/.config/matuwall/style.css` to change background, borders, and typograph
   - `landscape` (default): 16:9
   - `square`: 1:1
 - `scroll_direction` controls whether the grid scrolls vertically or horizontally. Use `vertical` or `horizontal`.
+- `infinite_scroll` wraps the scroll position and keyboard navigation at the ends.
 - `mouse_enabled` toggles pointer interaction (click/hover/scroll).
 - `keep_ui_alive` keeps the UI process running between show/hide (faster open, higher memory).
 - `backdrop_enabled` shows a full-screen transparent layer behind the panel.
