@@ -19,6 +19,7 @@ class AppConfig:
     window_grid_rows: int
     window_grid_max_width_pct: int
     infinite_scroll: bool
+    show_scrollbar: bool
     mouse_enabled: bool
     keep_ui_alive: bool
     backdrop_enabled: bool
@@ -49,6 +50,7 @@ DEFAULT_CONFIG = AppConfig(
     window_grid_rows=3,
     window_grid_max_width_pct=80,
     infinite_scroll=False,
+    show_scrollbar=False,
     mouse_enabled=True,
     keep_ui_alive=False,
     backdrop_enabled=False,
@@ -149,6 +151,9 @@ def load_config() -> AppConfig:
         infinite_scroll=bool(
             data.get("infinite_scroll", DEFAULT_CONFIG.infinite_scroll)
         ),
+        show_scrollbar=bool(
+            data.get("show_scrollbar", DEFAULT_CONFIG.show_scrollbar)
+        ),
         mouse_enabled=bool(data.get("mouse_enabled", DEFAULT_CONFIG.mouse_enabled)),
         keep_ui_alive=bool(
             data.get("keep_ui_alive", DEFAULT_CONFIG.keep_ui_alive)
@@ -214,6 +219,7 @@ def write_config(config: AppConfig) -> None:
         "window_grid_rows": config.window_grid_rows,
         "window_grid_max_width_pct": config.window_grid_max_width_pct,
         "infinite_scroll": config.infinite_scroll,
+        "show_scrollbar": config.show_scrollbar,
         "mouse_enabled": config.mouse_enabled,
         "keep_ui_alive": config.keep_ui_alive,
         "backdrop_enabled": config.backdrop_enabled,

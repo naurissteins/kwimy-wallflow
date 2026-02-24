@@ -85,6 +85,7 @@ Default config:
   "window_grid_rows": 3,
   "window_grid_max_width_pct": 80,
   "infinite_scroll": false,
+  "show_scrollbar": false,
   "mouse_enabled": true,
   "keep_ui_alive": false,
   "backdrop_enabled": false,
@@ -132,6 +133,7 @@ If you want to refresh it, delete the file and restart the app and it will be re
 - `window_grid_cols` / `window_grid_rows` control the default window size based on thumbnail dimensions.
 - `window_grid_max_width_pct` caps the window width as a percentage of the screen (default 80).
 - `infinite_scroll` wraps the scroll position and keyboard navigation at the ends.
+- `show_scrollbar` shows the scroll bar (default `false`).
 - `mouse_enabled` toggles pointer interaction (click/hover/scroll).
 - `keep_ui_alive` keeps the UI process running between show/hide (faster open, higher memory).
 - `backdrop_enabled` shows a full-screen transparent layer behind the panel.

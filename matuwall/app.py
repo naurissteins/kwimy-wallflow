@@ -78,6 +78,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._ipc_socket: socket.socket | None = None
         self._ipc_watch_id: int | None = None
         self._backdrop_window: Gtk.Window | None = None
+        self._scrollbar_css_applied = False
 
     def do_startup(self) -> None:
         Adw.Application.do_startup(self)
@@ -807,10 +808,13 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER)
         else:
             scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        if not self.config.show_scrollbar:
+            self._hide_scrollbars(scroller)
         self._scroller = scroller
 
         if not self.config.mouse_enabled:
             scroller.set_can_target(False)
+        scroller.set_can_focus(True)
         scroller.set_margin_top(max(0, int(self.config.content_inset_top)))
         scroller.set_margin_bottom(max(0, int(self.config.content_inset_bottom)))
         scroller.set_margin_start(max(0, int(self.config.content_inset_left)))
@@ -924,6 +928,33 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         if not self._toast_overlay:
             return
         self._toast_overlay.add_toast(Adw.Toast.new(message))
+
+    def _hide_scrollbars(self, scroller: Gtk.ScrolledWindow) -> None:
+        scroller.add_css_class("matuwall-hide-scrollbar")
+        if self._scrollbar_css_applied:
+            return
+        display = Gdk.Display.get_default()
+        if not display:
+            return
+        provider = Gtk.CssProvider()
+        provider.load_from_data(
+            b"""
+.matuwall-hide-scrollbar scrollbar {
+    opacity: 0;
+    min-width: 0;
+    min-height: 0;
+    margin: 0;
+}
+.matuwall-hide-scrollbar scrollbar slider {
+    min-width: 0;
+    min-height: 0;
+}
+"""
+        )
+        Gtk.StyleContext.add_provider_for_display(
+            display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 1
+        )
+        self._scrollbar_css_applied = True
 
     def _attach_scroll_wrap(self, scroller: Gtk.ScrolledWindow) -> None:
         controller = Gtk.EventControllerScroll.new(
