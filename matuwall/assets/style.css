@@ -17,7 +17,7 @@ window {
 }
 
 .matuwall-grid {
-    padding: 16px;
+    padding: 0;
 }
 
 gridview {
@@ -41,7 +41,7 @@ gridview child:hover .matuwall-card {
 }
 
 .matuwall-viewport {
-    padding-bottom: 0;
+    padding: 16px;
 }
 
 .matuwall-empty {

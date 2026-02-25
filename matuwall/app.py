@@ -826,7 +826,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
 
         self._list_store = Gio.ListStore.new(WallpaperItem)
         selection_model = Gtk.SingleSelection.new(self._list_store)
-        selection_model.connect("selection-changed", self._on_selection_changed)
+        selection_model.connect("notify::selected", self._on_selection_changed_snap)
 
         factory = Gtk.SignalListItemFactory()
         factory.connect("setup", self._on_factory_setup)
@@ -894,11 +894,51 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         list_item.set_child(widget)
         # Handle selection visual state via CSS on GtkListItem
 
-    def _on_selection_changed(
-        self, model: Gtk.SingleSelection, _position, _n_items
-    ) -> None:
-        # In GridView, selection is often handled by CSS on the ListItem
-        pass
+    def _on_selection_changed_snap(self, model: Gtk.SingleSelection, _pspec) -> None:
+        if not self._scroller or not self.config:
+            return
+        
+        index = model.get_selected()
+        if index == Gtk.INVALID_LIST_POSITION:
+            return
+
+        cols = max(1, int(self.config.window_grid_cols))
+        rows_visible = max(1, int(self.config.window_grid_rows))
+        
+        thumb_width = max(1, int(self.config.thumbnail_size))
+        if (self.config.thumbnail_shape or "landscape").lower() == "square":
+            thumb_height = thumb_width
+        else:
+            thumb_height = max(1, int(thumb_width * self.LANDSCAPE_RATIO))
+        
+        # Exact height of one row including all paddings/margins
+        item_outer_height = thumb_height + (self.CARD_PADDING + self.CARD_BORDER + self.CARD_MARGIN) * 2
+        
+        current_row = index // cols
+        adj = self._scroller.get_vadjustment()
+        if not adj:
+            return
+
+        # Current view boundaries in terms of rows
+        current_vscroll = adj.get_value()
+        
+        # Calculate which row is currently at the top
+        # We use a small epsilon to avoid rounding issues
+        top_row = round(current_vscroll / item_outer_height)
+        bottom_row = top_row + rows_visible - 1
+
+        target_vscroll = current_vscroll
+
+        if current_row < top_row:
+            # Selection moved above the current view, snap to top of this row
+            target_vscroll = current_row * item_outer_height
+        elif current_row > bottom_row:
+            # Selection moved below the current view, snap so this row is at the bottom
+            target_vscroll = (current_row - rows_visible + 1) * item_outer_height
+        
+        if target_vscroll != current_vscroll:
+            # Use an animation if you want it smoother, or just set_value for instant snap
+            adj.set_value(max(0, target_vscroll))
 
     def _on_grid_item_activated(self, _grid_view, position: int) -> None:
         if self._list_store:
