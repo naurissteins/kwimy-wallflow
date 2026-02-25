@@ -1,11 +1,20 @@
 from __future__ import annotations
 
+import logging
 import sys
 
 from .cli import parse_cli_command, send_ipc_command
 
 
+def _configure_logging() -> None:
+    root = logging.getLogger()
+    if root.handlers:
+        return
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+
+
 def main(argv: list[str] | None = None) -> int:
+    _configure_logging()
     if argv is None:
         argv = sys.argv[1:]
 

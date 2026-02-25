@@ -1,10 +1,14 @@
 from __future__ import annotations
 
 import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 
 from .paths import ASSETS_DIR, CONFIG_DIR
+
+
+LOGGER = logging.getLogger("matuwall.config")
 
 
 @dataclass
@@ -100,7 +104,7 @@ def load_config() -> AppConfig:
             raw = CONFIG_PATH.read_text(encoding="utf-8")
             data = json.loads(_strip_json_comments(raw))
         except (OSError, json.JSONDecodeError):
-            print("Config parse failed; using defaults")
+            LOGGER.warning("Config parse failed; using defaults")
             return DEFAULT_CONFIG
 
     return AppConfig(

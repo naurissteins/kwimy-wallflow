@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 import math
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -15,6 +16,9 @@ gi.require_version("GLib", "2.0")
 from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk
 
 from ..paths import CACHE_DIR
+
+
+LOGGER = logging.getLogger("matuwall.thumbnails")
 
 
 class ThumbnailMixin:
@@ -253,4 +257,4 @@ class ThumbnailMixin:
         if callable(logger):
             logger(message)
         else:
-            print(message, flush=True)
+            LOGGER.error(message)

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import socket
 from pathlib import Path
@@ -112,7 +113,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, AppBootstrapMixin, RuntimeMi
 
     @staticmethod
     def _log(message: str) -> None:
-        print(message, flush=True)
+        logging.getLogger("matuwall").info(message)
 
     def do_shutdown(self) -> None:
         self._shutdown_thumbnail_loader()
