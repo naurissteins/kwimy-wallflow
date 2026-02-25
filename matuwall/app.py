@@ -64,7 +64,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._scroll_direction: str = "vertical"
         self._panel_mode = False
         self._panel_edge: str = "left"
-        self._panel_size: int = 420
+        self._panel_size: int = 1
         self._panel_thumbs_col: int = 3
         self._panel_margins: tuple[int, int, int, int] = (0, 0, 0, 0)
         self._backdrop_enabled = False
@@ -174,7 +174,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             self._window,
             self._panel_edge,
             self._panel_size,
-            self._panel_fit,
+            self._panel_thumbs_col,
             self._panel_margins,
         )
         return False
