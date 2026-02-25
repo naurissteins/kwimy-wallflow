@@ -9,6 +9,12 @@ from .paths import ASSETS_DIR, CONFIG_DIR
 
 LOGGER = logging.getLogger("matuwall.config")
 MAX_THUMBNAIL_SIZE = 1000
+MAX_BATCH_SIZE = 128
+MAX_CARD_MARGIN = 128
+MAX_WINDOW_GRID_COLS = 12
+MAX_WINDOW_GRID_ROWS = 12
+MIN_PANEL_EXCLUSIVE_ZONE = -1
+MAX_PANEL_EXCLUSIVE_ZONE = 4096
 
 
 @dataclass
@@ -94,6 +100,10 @@ def _strip_json_comments(text: str) -> str:
     return "\n".join(lines)
 
 
+def _clamp(value: int, low: int, high: int) -> int:
+    return max(low, min(high, int(value)))
+
+
 def load_config() -> AppConfig:
     ensure_config()
     try:
@@ -120,16 +130,28 @@ def load_config() -> AppConfig:
         thumbnail_shape=str(
             data.get("thumbnail_shape", DEFAULT_CONFIG.thumbnail_shape)
         ),
-        batch_size=int(data.get("batch_size", DEFAULT_CONFIG.batch_size)),
-        card_margin=max(0, int(data.get("card_margin", DEFAULT_CONFIG.card_margin))),
+        batch_size=_clamp(
+            data.get("batch_size", DEFAULT_CONFIG.batch_size),
+            1,
+            MAX_BATCH_SIZE,
+        ),
+        card_margin=_clamp(
+            data.get("card_margin", DEFAULT_CONFIG.card_margin),
+            0,
+            MAX_CARD_MARGIN,
+        ),
         window_decorations=bool(
             data.get("window_decorations", DEFAULT_CONFIG.window_decorations)
         ),
-        window_grid_cols=max(
-            1, int(data.get("window_grid_cols", DEFAULT_CONFIG.window_grid_cols))
+        window_grid_cols=_clamp(
+            data.get("window_grid_cols", DEFAULT_CONFIG.window_grid_cols),
+            1,
+            MAX_WINDOW_GRID_COLS,
         ),
-        window_grid_rows=max(
-            1, int(data.get("window_grid_rows", DEFAULT_CONFIG.window_grid_rows))
+        window_grid_rows=_clamp(
+            data.get("window_grid_rows", DEFAULT_CONFIG.window_grid_rows),
+            1,
+            MAX_WINDOW_GRID_ROWS,
         ),
         window_grid_max_width_pct=max(
             20,
@@ -152,8 +174,10 @@ def load_config() -> AppConfig:
         panel_thumbs_col=max(
             1, int(data.get("panel_thumbs_col", DEFAULT_CONFIG.panel_thumbs_col))
         ),
-        panel_exclusive_zone=int(
-            data.get("panel_exclusive_zone", DEFAULT_CONFIG.panel_exclusive_zone)
+        panel_exclusive_zone=_clamp(
+            data.get("panel_exclusive_zone", DEFAULT_CONFIG.panel_exclusive_zone),
+            MIN_PANEL_EXCLUSIVE_ZONE,
+            MAX_PANEL_EXCLUSIVE_ZONE,
         ),
         panel_margin_top=int(
             data.get("panel_margin_top", DEFAULT_CONFIG.panel_margin_top)
@@ -179,18 +203,22 @@ def write_config(config: AppConfig) -> None:
             1, min(MAX_THUMBNAIL_SIZE, int(config.thumbnail_size))
         ),
         "thumbnail_shape": config.thumbnail_shape,
-        "batch_size": config.batch_size,
-        "card_margin": config.card_margin,
+        "batch_size": _clamp(config.batch_size, 1, MAX_BATCH_SIZE),
+        "card_margin": _clamp(config.card_margin, 0, MAX_CARD_MARGIN),
         "window_decorations": config.window_decorations,
-        "window_grid_cols": config.window_grid_cols,
-        "window_grid_rows": config.window_grid_rows,
+        "window_grid_cols": _clamp(config.window_grid_cols, 1, MAX_WINDOW_GRID_COLS),
+        "window_grid_rows": _clamp(config.window_grid_rows, 1, MAX_WINDOW_GRID_ROWS),
         "window_grid_max_width_pct": config.window_grid_max_width_pct,
         "mouse_enabled": config.mouse_enabled,
         "keep_ui_alive": config.keep_ui_alive,
         "panel_mode": config.panel_mode,
         "panel_edge": config.panel_edge,
         "panel_thumbs_col": config.panel_thumbs_col,
-        "panel_exclusive_zone": config.panel_exclusive_zone,
+        "panel_exclusive_zone": _clamp(
+            config.panel_exclusive_zone,
+            MIN_PANEL_EXCLUSIVE_ZONE,
+            MAX_PANEL_EXCLUSIVE_ZONE,
+        ),
         "panel_margin_top": config.panel_margin_top,
         "panel_margin_bottom": config.panel_margin_bottom,
         "panel_margin_left": config.panel_margin_left,
