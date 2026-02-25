@@ -8,6 +8,7 @@ from .paths import ASSETS_DIR, CONFIG_DIR
 
 
 LOGGER = logging.getLogger("matuwall.config")
+MAX_THUMBNAIL_SIZE = 1000
 
 
 @dataclass
@@ -109,7 +110,13 @@ def load_config() -> AppConfig:
     return AppConfig(
         wallpaper_dir=str(data.get("wallpaper_dir", DEFAULT_CONFIG.wallpaper_dir)),
         matugen_mode=str(data.get("matugen_mode", DEFAULT_CONFIG.matugen_mode)),
-        thumbnail_size=int(data.get("thumbnail_size", DEFAULT_CONFIG.thumbnail_size)),
+        thumbnail_size=max(
+            1,
+            min(
+                MAX_THUMBNAIL_SIZE,
+                int(data.get("thumbnail_size", DEFAULT_CONFIG.thumbnail_size)),
+            ),
+        ),
         thumbnail_shape=str(
             data.get("thumbnail_shape", DEFAULT_CONFIG.thumbnail_shape)
         ),
@@ -168,7 +175,9 @@ def write_config(config: AppConfig) -> None:
     payload = {
         "wallpaper_dir": config.wallpaper_dir,
         "matugen_mode": config.matugen_mode,
-        "thumbnail_size": config.thumbnail_size,
+        "thumbnail_size": max(
+            1, min(MAX_THUMBNAIL_SIZE, int(config.thumbnail_size))
+        ),
         "thumbnail_shape": config.thumbnail_shape,
         "batch_size": config.batch_size,
         "card_margin": config.card_margin,

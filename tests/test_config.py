@@ -67,6 +67,28 @@ class ConfigTests(unittest.TestCase):
             self.assertNotIn("show_scrollbar", payload)
             self.assertNotIn("backdrop_enabled", payload)
 
+    def test_thumbnail_size_is_capped(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cfg_dir = root / "config"
+            assets_dir = root / "assets"
+            cfg_dir.mkdir()
+            assets_dir.mkdir()
+            (assets_dir / "style.css").write_text("window {}\n", encoding="utf-8")
+
+            cfg_path = cfg_dir / "config.json"
+            cfg_path.write_text(
+                "{\"thumbnail_size\": 999999}\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(config, "CONFIG_DIR", cfg_dir), patch.object(
+                config, "CONFIG_PATH", cfg_path
+            ), patch.object(config, "ASSETS_DIR", assets_dir):
+                loaded = config.load_config()
+
+            self.assertEqual(loaded.thumbnail_size, config.MAX_THUMBNAIL_SIZE)
+
 
 if __name__ == "__main__":
     unittest.main()

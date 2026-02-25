@@ -121,6 +121,7 @@ If you want to refresh it, delete the file and restart the app and it will be re
 - `thumbnail_size` is the width. Height depends on `thumbnail_shape`:
   - `landscape` (default): 16:9
   - `square`: 1:1
+  - Capped to `1000` to avoid oversized thumbnails.
 - `batch_size` controls how many thumbnails are appended per UI idle cycle (smaller = smoother, larger = faster fill).
 - `card_margin` controls the spacing around each wallpaper card (match this with your CSS if you override styles).
 - `window_grid_cols` / `window_grid_rows` control the default window size based on thumbnail dimensions.
