@@ -21,9 +21,6 @@ class AppConfig:
     window_grid_max_width_pct: int
     mouse_enabled: bool
     keep_ui_alive: bool
-    backdrop_enabled: bool
-    backdrop_opacity: float
-    backdrop_click_to_close: bool
     panel_mode: bool
     panel_edge: str
     panel_thumbs_col: int
@@ -47,9 +44,6 @@ DEFAULT_CONFIG = AppConfig(
     window_grid_max_width_pct=80,
     mouse_enabled=True,
     keep_ui_alive=False,
-    backdrop_enabled=False,
-    backdrop_opacity=0.0,
-    backdrop_click_to_close=True,
     panel_mode=False,
     panel_edge="left",
     panel_thumbs_col=3,
@@ -143,18 +137,6 @@ def load_config() -> AppConfig:
         keep_ui_alive=bool(
             data.get("keep_ui_alive", DEFAULT_CONFIG.keep_ui_alive)
         ),
-        backdrop_enabled=bool(
-            data.get("backdrop_enabled", DEFAULT_CONFIG.backdrop_enabled)
-        ),
-        backdrop_opacity=float(
-            data.get("backdrop_opacity", DEFAULT_CONFIG.backdrop_opacity)
-        ),
-        backdrop_click_to_close=bool(
-            data.get(
-                "backdrop_click_to_close",
-                DEFAULT_CONFIG.backdrop_click_to_close,
-            )
-        ),
         panel_mode=bool(data.get("panel_mode", DEFAULT_CONFIG.panel_mode)),
         panel_edge=str(data.get("panel_edge", DEFAULT_CONFIG.panel_edge)),
         panel_thumbs_col=max(
@@ -193,9 +175,6 @@ def write_config(config: AppConfig) -> None:
         "window_grid_max_width_pct": config.window_grid_max_width_pct,
         "mouse_enabled": config.mouse_enabled,
         "keep_ui_alive": config.keep_ui_alive,
-        "backdrop_enabled": config.backdrop_enabled,
-        "backdrop_opacity": config.backdrop_opacity,
-        "backdrop_click_to_close": config.backdrop_click_to_close,
         "panel_mode": config.panel_mode,
         "panel_edge": config.panel_edge,
         "panel_thumbs_col": config.panel_thumbs_col,

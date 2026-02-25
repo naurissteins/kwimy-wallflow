@@ -87,9 +87,6 @@ Default config:
   "window_grid_max_width_pct": 80,
   "mouse_enabled": true,
   "keep_ui_alive": false,
-  "backdrop_enabled": false,
-  "backdrop_opacity": 0.0,
-  "backdrop_click_to_close": true,
   "panel_mode": false,
   "panel_edge": "left",
   "panel_thumbs_col": 3,
@@ -130,9 +127,6 @@ If you want to refresh it, delete the file and restart the app and it will be re
 - `window_grid_max_width_pct` caps the window width as a percentage of the screen (default 80).
 - `mouse_enabled` toggles pointer interaction (click/hover/scroll).
 - `keep_ui_alive` keeps the UI process running between show/hide (faster open, higher memory).
-- `backdrop_enabled` shows a full-screen transparent layer behind the panel.
-- `backdrop_opacity` controls the backdrop tint (0.0 to 1.0). Note: if click-to-close is enabled, values at 0.0 are clamped to 0.01 so the compositor still delivers input. **(Wayland compositor fully transparent surfaces often don’t receive input events)** I will update when I will find a solution.
-- `backdrop_click_to_close` closes the panel when clicking outside it.
 - `panel_mode` enables layer-shell mode (requires `gtk-layer-shell` with Gtk4 typelibs).
 - `panel_edge` can be `left`, `right`, `top`, `bottom`.
 - `panel_thumbs_col` is the number of thumbnails to display (width for top/bottom panels, height for left/right). If it's too large for your monitor/margins, Matuwall automatically caps visible thumbs to fit on screen.

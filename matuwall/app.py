@@ -67,7 +67,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._panel_size: int = 1
         self._panel_thumbs_col: int = 3
         self._panel_margins: tuple[int, int, int, int] = (0, 0, 0, 0)
-        self._backdrop_enabled = False
+        self._backdrop_enabled = True
         self._backdrop_opacity = 0.0
         self._backdrop_click_to_close = True
         self._keep_ui_alive = False
@@ -334,11 +334,6 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._panel_size = panel_size
         self._panel_thumbs_col = panel_thumbs_col
         self._panel_margins = panel_margins
-        self._backdrop_enabled = bool(self.config.backdrop_enabled)
-        self._backdrop_opacity = max(
-            0.0, min(1.0, float(self.config.backdrop_opacity))
-        )
-        self._backdrop_click_to_close = bool(self.config.backdrop_click_to_close)
         self._keep_ui_alive = bool(self.config.keep_ui_alive)
         if (
             self._backdrop_enabled
