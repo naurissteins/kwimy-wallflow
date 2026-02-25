@@ -321,6 +321,15 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             max(0, int(self.config.panel_margin_left)),
             max(0, int(self.config.panel_margin_right)),
         )
+        monitor_width, monitor_height = self._get_primary_monitor_size()
+        panel_thumbs_col = self._effective_panel_thumbs_col(
+            panel_edge,
+            panel_size,
+            panel_thumbs_col,
+            panel_margins,
+            monitor_width,
+            monitor_height,
+        )
         self._panel_edge = panel_edge
         self._panel_size = panel_size
         self._panel_thumbs_col = panel_thumbs_col
@@ -339,7 +348,6 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             # Keep a tiny alpha so the compositor still delivers input.
             self._backdrop_opacity = 0.01
         if self._panel_mode:
-            monitor_width, monitor_height = self._get_primary_monitor_size()
             target_width, target_height = self._panel_target_size(
                 panel_edge,
                 panel_size,
@@ -471,6 +479,15 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._log(
             "layer_shell monitor size: %sx%s" % (monitor_width, monitor_height)
         )
+        panel_thumbs_col = self._effective_panel_thumbs_col(
+            panel_edge,
+            panel_size,
+            panel_thumbs_col,
+            panel_margins,
+            monitor_width,
+            monitor_height,
+        )
+        self._panel_thumbs_col = panel_thumbs_col
 
         target_width, target_height = self._panel_target_size(
             panel_edge,
@@ -592,6 +609,42 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             width = item_w * panel_thumbs_col + self.GRID_PADDING * 2
             
         return int(max(1, width)), int(max(1, height))
+
+    def _effective_panel_thumbs_col(
+        self,
+        panel_edge: str,
+        panel_size: int,
+        panel_thumbs_col: int,
+        panel_margins: tuple[int, int, int, int],
+        monitor_width: int,
+        monitor_height: int,
+    ) -> int:
+        requested = max(1, int(panel_thumbs_col))
+        margin_top, margin_bottom, margin_left, margin_right = panel_margins
+        if panel_edge in {"left", "right"} and monitor_height <= 0:
+            return requested
+        if panel_edge in {"top", "bottom"} and monitor_width <= 0:
+            return requested
+
+        item_w, item_h = self._get_item_outer_dimensions(
+            panel_edge=panel_edge,
+            panel_size=panel_size,
+            apply_panel_full_width=True,
+        )
+        if panel_edge in {"left", "right"}:
+            available = max(
+                1,
+                monitor_height - margin_top - margin_bottom - self.GRID_PADDING * 2,
+            )
+            max_visible = max(1, available // max(1, item_h))
+        else:
+            available = max(
+                1,
+                monitor_width - margin_left - margin_right - self.GRID_PADDING * 2,
+            )
+            max_visible = max(1, available // max(1, item_w))
+
+        return min(requested, max_visible)
 
     @staticmethod
     def _apply_panel_size_hint(window: Gtk.Window, width: int, height: int) -> None:
@@ -953,7 +1006,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         
         # How many rows/cols we want to see
         if self._panel_mode:
-            visible_count = max(1, int(self.config.panel_thumbs_col))
+            visible_count = max(1, int(self._panel_thumbs_col))
         else:
             visible_count = max(1, int(self.config.window_grid_rows if not is_horiz else self.config.window_grid_cols))
             

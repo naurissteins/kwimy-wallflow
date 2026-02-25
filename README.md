@@ -137,7 +137,7 @@ If you want to refresh it, delete the file and restart the app and it will be re
 - `backdrop_click_to_close` closes the panel when clicking outside it.
 - `panel_mode` enables layer-shell mode (requires `gtk-layer-shell` with Gtk4 typelibs).
 - `panel_edge` can be `left`, `right`, `top`, `bottom`.
-- `panel_thumbs_col` is the number of thumbnails to display (width for top/bottom panels, height for left/right).
+- `panel_thumbs_col` is the number of thumbnails to display (width for top/bottom panels, height for left/right). If it's too large for your monitor/margins, Matuwall automatically caps visible thumbs to fit on screen.
 - `panel_exclusive_zone` controls reserved space (`-1` = none).
 - `panel_margin_top` / `panel_margin_bottom` add margins in pixels (useful to sit under a top bar).
 - `panel_margin_left` / `panel_margin_right` add margins for top/bottom panels.
