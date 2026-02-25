@@ -121,6 +121,39 @@ class MatuwallApp(Adw.Application, NavigationMixin, RuntimeMixin, WindowStateMix
         if self._window:
             return
 
+        self._load_and_apply_config()
+        window = Adw.ApplicationWindow(application=self)
+        (
+            panel_edge,
+            panel_size,
+            panel_thumbs_col,
+            panel_margins,
+            monitor_width,
+            monitor_height,
+        ) = self._resolve_panel_layout()
+        self._apply_panel_runtime_state(
+            panel_edge, panel_size, panel_thumbs_col, panel_margins
+        )
+        target_width, target_height = self._configure_window_geometry(
+            window,
+            panel_edge,
+            panel_size,
+            panel_thumbs_col,
+            panel_margins,
+            monitor_width,
+            monitor_height,
+        )
+        self._finalize_window_setup(
+            window,
+            panel_edge,
+            panel_size,
+            panel_thumbs_col,
+            panel_margins,
+            target_width,
+            target_height,
+        )
+
+    def _load_and_apply_config(self) -> None:
         self.config = load_config()
         self.CARD_MARGIN = max(0, int(self.config.card_margin))
         self._apply_config_css()
@@ -130,7 +163,12 @@ class MatuwallApp(Adw.Application, NavigationMixin, RuntimeMixin, WindowStateMix
             self._log("Layer-shell requires Wayland; panel_mode disabled")
         CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
-        window = Adw.ApplicationWindow(application=self)
+    def _resolve_panel_layout(
+        self,
+    ) -> tuple[str, int, int, tuple[int, int, int, int], int, int]:
+        if not self.config:
+            return ("left", 1, 1, (0, 0, 0, 0), 0, 0)
+
         panel_edge = str(self.config.panel_edge).strip().lower()
         if panel_edge not in {"left", "right", "top", "bottom"}:
             panel_edge = "left"
@@ -138,6 +176,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, RuntimeMixin, WindowStateMix
             self._scroll_direction = "horizontal"
         else:
             self._scroll_direction = "vertical"
+
         panel_size = self._derive_panel_size(panel_edge)
         panel_thumbs_col = max(1, int(self.config.panel_thumbs_col))
         panel_margins = (
@@ -155,11 +194,27 @@ class MatuwallApp(Adw.Application, NavigationMixin, RuntimeMixin, WindowStateMix
             monitor_width,
             monitor_height,
         )
+        return (
+            panel_edge,
+            panel_size,
+            panel_thumbs_col,
+            panel_margins,
+            monitor_width,
+            monitor_height,
+        )
+
+    def _apply_panel_runtime_state(
+        self,
+        panel_edge: str,
+        panel_size: int,
+        panel_thumbs_col: int,
+        panel_margins: tuple[int, int, int, int],
+    ) -> None:
         self._panel_edge = panel_edge
         self._panel_size = panel_size
         self._panel_thumbs_col = panel_thumbs_col
         self._panel_margins = panel_margins
-        self._keep_ui_alive = bool(self.config.keep_ui_alive)
+        self._keep_ui_alive = bool(self.config.keep_ui_alive) if self.config else False
         if (
             self._backdrop_enabled
             and self._backdrop_click_to_close
@@ -167,6 +222,17 @@ class MatuwallApp(Adw.Application, NavigationMixin, RuntimeMixin, WindowStateMix
         ):
             # Keep a tiny alpha so the compositor still delivers input.
             self._backdrop_opacity = 0.01
+
+    def _configure_window_geometry(
+        self,
+        window: Adw.ApplicationWindow,
+        panel_edge: str,
+        panel_size: int,
+        panel_thumbs_col: int,
+        panel_margins: tuple[int, int, int, int],
+        monitor_width: int,
+        monitor_height: int,
+    ) -> tuple[int, int]:
         if self._panel_mode:
             target_width, target_height = self._panel_target_size(
                 panel_edge,
@@ -179,16 +245,30 @@ class MatuwallApp(Adw.Application, NavigationMixin, RuntimeMixin, WindowStateMix
             window.set_default_size(target_width, target_height)
             window.set_decorated(False)
             window.set_resizable(False)
-        else:
-            target_width, target_height = self._derive_window_size()
-            window.set_default_size(target_width, target_height)
-            window.set_resizable(False)
+            return target_width, target_height
+
+        target_width, target_height = self._derive_window_size()
+        window.set_default_size(target_width, target_height)
+        window.set_resizable(False)
+        return target_width, target_height
+
+    def _finalize_window_setup(
+        self,
+        window: Adw.ApplicationWindow,
+        panel_edge: str,
+        panel_size: int,
+        panel_thumbs_col: int,
+        panel_margins: tuple[int, int, int, int],
+        target_width: int,
+        target_height: int,
+    ) -> None:
         window.set_title("Matuwall")
-        if not self._panel_mode:
+        if not self._panel_mode and self.config:
             window.set_decorated(bool(self.config.window_decorations))
         window.connect("close-request", self._on_close_request)
         self._window = window
-        if self.config.panel_mode and LayerShell is None:
+
+        if self.config and self.config.panel_mode and LayerShell is None:
             self._log("gtk4-layer-shell not available; panel_mode disabled")
         if self._backdrop_enabled:
             self._ensure_backdrop_window()
@@ -196,6 +276,8 @@ class MatuwallApp(Adw.Application, NavigationMixin, RuntimeMixin, WindowStateMix
             self._apply_layer_shell(
                 window, panel_edge, panel_size, panel_thumbs_col, panel_margins
             )
+
+        backend = self._display_backend_name()
         if self._panel_mode:
             self._log(
                 "panel_mode=%s edge=%s size=%s thumbs=%s margins=%s backend=%s target=%sx%s"
@@ -205,11 +287,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, RuntimeMixin, WindowStateMix
                     panel_size,
                     panel_thumbs_col,
                     panel_margins,
-                    (
-                        Gdk.Display.get_default().get_name()
-                        if Gdk.Display.get_default()
-                        else "none"
-                    ),
+                    backend,
                     target_width,
                     target_height,
                 )
@@ -221,15 +299,18 @@ class MatuwallApp(Adw.Application, NavigationMixin, RuntimeMixin, WindowStateMix
                     self._panel_mode,
                     panel_edge,
                     panel_size,
-                    (
-                        Gdk.Display.get_default().get_name()
-                        if Gdk.Display.get_default()
-                        else "none"
-                    ),
+                    backend,
                 )
             )
 
         self._build_content()
+
+    @staticmethod
+    def _display_backend_name() -> str:
+        display = Gdk.Display.get_default()
+        if not display:
+            return "none"
+        return display.get_name() or "none"
 
     def _derive_window_size(self) -> tuple[int, int]:
         if not self.config:
