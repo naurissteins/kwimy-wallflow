@@ -44,7 +44,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
     GRID_PADDING = 16
     CARD_PADDING = 8
     CARD_BORDER = 1
-    CARD_MARGIN = 12
+    CARD_MARGIN = 16
     SIZE_SAFETY = 0
     HEADER_HEIGHT = 48
 
@@ -81,6 +81,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._backdrop_window: Gtk.Window | None = None
         self._scrollbar_css_applied = False
         self._snap_anim: Adw.TimedAnimation | None = None
+        self._config_css_provider: Gtk.CssProvider | None = None
 
     def do_startup(self) -> None:
         Adw.Application.do_startup(self)
@@ -296,6 +297,8 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             return
 
         self.config = load_config()
+        self.CARD_MARGIN = max(0, int(self.config.card_margin))
+        self._apply_config_css()
         self._panel_mode = bool(self.config.panel_mode and LayerShell is not None)
         if self._panel_mode and not self._is_wayland():
             self._panel_mode = False
@@ -695,6 +698,21 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         Gtk.StyleContext.add_provider_for_display(
             Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
+
+    def _apply_config_css(self) -> None:
+        if not self.config:
+            return
+        display = Gdk.Display.get_default()
+        if not display:
+            return
+        margin = max(0, int(self.config.card_margin))
+        css = f".matuwall-card {{ margin: {margin}px; }}\n"
+        provider = Gtk.CssProvider()
+        provider.load_from_data(css.encode("utf-8"))
+        Gtk.StyleContext.add_provider_for_display(
+            display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 2
+        )
+        self._config_css_provider = provider
 
     def _load_next_batch(self) -> bool:
         if self._list_store is None or not self.config:

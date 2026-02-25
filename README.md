@@ -80,6 +80,7 @@ Default config:
   "thumbnail_size": 256,
   "thumbnail_shape": "landscape",
   "batch_size": 16,
+  "card_margin": 16,
   "window_decorations": false,
   "window_grid_cols": 3,
   "window_grid_rows": 3,
@@ -125,6 +126,7 @@ If you want to refresh it, delete the file and restart the app and it will be re
   - `landscape` (default): 16:9
   - `square`: 1:1
 - `batch_size` controls how many thumbnails are appended per UI idle cycle (smaller = smoother, larger = faster fill).
+- `card_margin` controls the spacing around each wallpaper card (match this with your CSS if you override styles).
 - `window_grid_cols` / `window_grid_rows` control the default window size based on thumbnail dimensions.
 - `window_grid_max_width_pct` caps the window width as a percentage of the screen (default 80).
 - `show_scrollbar` shows the scroll bar (default `false`).

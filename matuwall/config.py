@@ -14,6 +14,7 @@ class AppConfig:
     thumbnail_size: int
     thumbnail_shape: str
     batch_size: int
+    card_margin: int
     window_decorations: bool
     window_grid_cols: int
     window_grid_rows: int
@@ -40,6 +41,7 @@ DEFAULT_CONFIG = AppConfig(
     thumbnail_size=256,
     thumbnail_shape="landscape",
     batch_size=16,
+    card_margin=16,
     window_decorations=False,
     window_grid_cols=3,
     window_grid_rows=3,
@@ -117,6 +119,7 @@ def load_config() -> AppConfig:
             data.get("thumbnail_shape", DEFAULT_CONFIG.thumbnail_shape)
         ),
         batch_size=int(data.get("batch_size", DEFAULT_CONFIG.batch_size)),
+        card_margin=max(0, int(data.get("card_margin", DEFAULT_CONFIG.card_margin))),
         window_decorations=bool(
             data.get("window_decorations", DEFAULT_CONFIG.window_decorations)
         ),
@@ -188,6 +191,7 @@ def write_config(config: AppConfig) -> None:
         "thumbnail_size": config.thumbnail_size,
         "thumbnail_shape": config.thumbnail_shape,
         "batch_size": config.batch_size,
+        "card_margin": config.card_margin,
         "window_decorations": config.window_decorations,
         "window_grid_cols": config.window_grid_cols,
         "window_grid_rows": config.window_grid_rows,
