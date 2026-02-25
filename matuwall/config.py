@@ -26,7 +26,7 @@ class AppConfig:
     backdrop_click_to_close: bool
     panel_mode: bool
     panel_edge: str
-    panel_size: int
+    panel_thumbs_col: int
     panel_exclusive_zone: int
     panel_margin_top: int
     panel_margin_bottom: int
@@ -52,7 +52,7 @@ DEFAULT_CONFIG = AppConfig(
     backdrop_click_to_close=True,
     panel_mode=False,
     panel_edge="left",
-    panel_size=100,
+    panel_thumbs_col=3,
     panel_exclusive_zone=-1,
     panel_margin_top=0,
     panel_margin_bottom=0,
@@ -159,9 +159,8 @@ def load_config() -> AppConfig:
         ),
         panel_mode=bool(data.get("panel_mode", DEFAULT_CONFIG.panel_mode)),
         panel_edge=str(data.get("panel_edge", DEFAULT_CONFIG.panel_edge)),
-        panel_size=max(
-            20,
-            min(100, int(data.get("panel_size", DEFAULT_CONFIG.panel_size))),
+        panel_thumbs_col=max(
+            1, int(data.get("panel_thumbs_col", DEFAULT_CONFIG.panel_thumbs_col))
         ),
         panel_exclusive_zone=int(
             data.get("panel_exclusive_zone", DEFAULT_CONFIG.panel_exclusive_zone)
@@ -201,7 +200,7 @@ def write_config(config: AppConfig) -> None:
         "backdrop_click_to_close": config.backdrop_click_to_close,
         "panel_mode": config.panel_mode,
         "panel_edge": config.panel_edge,
-        "panel_size": config.panel_size,
+        "panel_thumbs_col": config.panel_thumbs_col,
         "panel_exclusive_zone": config.panel_exclusive_zone,
         "panel_margin_top": config.panel_margin_top,
         "panel_margin_bottom": config.panel_margin_bottom,

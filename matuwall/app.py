@@ -65,7 +65,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._panel_mode = False
         self._panel_edge: str = "left"
         self._panel_size: int = 420
-        self._panel_size_pct: int = 100
+        self._panel_thumbs_col: int = 3
         self._panel_margins: tuple[int, int, int, int] = (0, 0, 0, 0)
         self._backdrop_enabled = False
         self._backdrop_opacity = 0.0
@@ -311,7 +311,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         else:
             self._scroll_direction = "vertical"
         panel_size = self._derive_panel_size(panel_edge)
-        panel_size_pct = max(20, min(100, int(self.config.panel_size)))
+        panel_thumbs_col = max(1, int(self.config.panel_thumbs_col))
         panel_margins = (
             max(0, int(self.config.panel_margin_top)),
             max(0, int(self.config.panel_margin_bottom)),
@@ -320,10 +320,12 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         )
         self._panel_edge = panel_edge
         self._panel_size = panel_size
-        self._panel_size_pct = panel_size_pct
+        self._panel_thumbs_col = panel_thumbs_col
         self._panel_margins = panel_margins
         self._backdrop_enabled = bool(self.config.backdrop_enabled)
-        self._backdrop_opacity = max(0.0, min(1.0, float(self.config.backdrop_opacity)))
+        self._backdrop_opacity = max(
+            0.0, min(1.0, float(self.config.backdrop_opacity))
+        )
         self._backdrop_click_to_close = bool(self.config.backdrop_click_to_close)
         self._keep_ui_alive = bool(self.config.keep_ui_alive)
         if (
@@ -338,7 +340,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             target_width, target_height = self._panel_target_size(
                 panel_edge,
                 panel_size,
-                panel_size_pct,
+                panel_thumbs_col,
                 monitor_width,
                 monitor_height,
                 panel_margins,
@@ -361,16 +363,16 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             self._ensure_backdrop_window()
         if self._panel_mode:
             self._apply_layer_shell(
-                window, panel_edge, panel_size, panel_size_pct, panel_margins
+                window, panel_edge, panel_size, panel_thumbs_col, panel_margins
             )
         if self._panel_mode:
             self._log(
-                "panel_mode=%s edge=%s size=%s pct=%s margins=%s backend=%s target=%sx%s"
+                "panel_mode=%s edge=%s size=%s thumbs=%s margins=%s backend=%s target=%sx%s"
                 % (
                     self._panel_mode,
                     panel_edge,
                     panel_size,
-                    panel_size_pct,
+                    panel_thumbs_col,
                     panel_margins,
                     (
                         Gdk.Display.get_default().get_name()
@@ -383,12 +385,11 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             )
         else:
             self._log(
-                "panel_mode=%s edge=%s size=%s pct=%s backend=%s"
+                "panel_mode=%s edge=%s size=%s backend=%s"
                 % (
                     self._panel_mode,
                     panel_edge,
                     panel_size,
-                    panel_size_pct,
                     (
                         Gdk.Display.get_default().get_name()
                         if Gdk.Display.get_default()
@@ -426,7 +427,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         window: Gtk.Window,
         panel_edge: str,
         panel_size: int,
-        panel_size_pct: int,
+        panel_thumbs_col: int,
         panel_margins: tuple[int, int, int, int],
     ) -> None:
         if LayerShell is None:
@@ -449,7 +450,9 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             pass
         LayerShell.set_layer(window, LayerShell.Layer.TOP)
         LayerShell.set_keyboard_mode(window, LayerShell.KeyboardMode.ON_DEMAND)
-        LayerShell.set_exclusive_zone(window, int(self.config.panel_exclusive_zone))
+        LayerShell.set_exclusive_zone(
+            window, int(self.config.panel_exclusive_zone)
+        )
 
         LayerShell.set_anchor(window, LayerShell.Edge.LEFT, False)
         LayerShell.set_anchor(window, LayerShell.Edge.RIGHT, False)
@@ -462,66 +465,54 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         LayerShell.set_margin(window, LayerShell.Edge.RIGHT, margin_right)
 
         monitor_width, monitor_height = self._get_primary_monitor_size()
-        self._log("layer_shell monitor size: %sx%s" % (monitor_width, monitor_height))
+        self._log(
+            "layer_shell monitor size: %sx%s" % (monitor_width, monitor_height)
+        )
 
         target_width, target_height = self._panel_target_size(
             panel_edge,
             panel_size,
-            panel_size_pct,
+            panel_thumbs_col,
             monitor_width,
             monitor_height,
             panel_margins,
         )
 
-        size_full = panel_size_pct >= 100
-        if not size_full:
-            if panel_edge in {"left", "right"}:
-                available = max(1, monitor_height - margin_top - margin_bottom)
-                offset = max(0, (available - target_height) // 2)
-                margin_top = margin_top + offset
-                margin_bottom = margin_bottom + offset
-            else:
-                available = max(1, monitor_width - margin_left - margin_right)
-                offset = max(0, (available - target_width) // 2)
-                margin_left = margin_left + offset
-                margin_right = margin_right + offset
-            LayerShell.set_margin(window, LayerShell.Edge.TOP, margin_top)
-            LayerShell.set_margin(window, LayerShell.Edge.BOTTOM, margin_bottom)
-            LayerShell.set_margin(window, LayerShell.Edge.LEFT, margin_left)
-            LayerShell.set_margin(window, LayerShell.Edge.RIGHT, margin_right)
+        # Centering logic: adjust margins to center the panel on the screen
+        if panel_edge in {"left", "right"}:
+            available = max(1, monitor_height - margin_top - margin_bottom)
+            offset = max(0, (available - target_height) // 2)
+            margin_top = margin_top + offset
+            margin_bottom = margin_bottom + offset
+        else:
+            available = max(1, monitor_width - margin_left - margin_right)
+            offset = max(0, (available - target_width) // 2)
+            margin_left = margin_left + offset
+            margin_right = margin_right + offset
+        
+        LayerShell.set_margin(window, LayerShell.Edge.TOP, margin_top)
+        LayerShell.set_margin(window, LayerShell.Edge.BOTTOM, margin_bottom)
+        LayerShell.set_margin(window, LayerShell.Edge.LEFT, margin_left)
+        LayerShell.set_margin(window, LayerShell.Edge.RIGHT, margin_right)
+
         if panel_edge == "left":
             LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
-            if size_full:
-                LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
-                LayerShell.set_anchor(window, LayerShell.Edge.BOTTOM, True)
-            else:
-                LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
+            LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
             self._set_layer_size(window, target_width, target_height)
         elif panel_edge == "right":
             LayerShell.set_anchor(window, LayerShell.Edge.RIGHT, True)
-            if size_full:
-                LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
-                LayerShell.set_anchor(window, LayerShell.Edge.BOTTOM, True)
-            else:
-                LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
+            LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
             self._set_layer_size(window, target_width, target_height)
         elif panel_edge == "top":
             LayerShell.set_anchor(window, LayerShell.Edge.TOP, True)
-            if size_full:
-                LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
-                LayerShell.set_anchor(window, LayerShell.Edge.RIGHT, True)
-            else:
-                LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
+            LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
             self._set_layer_size(window, target_width, target_height)
         else:
             LayerShell.set_anchor(window, LayerShell.Edge.BOTTOM, True)
-            if size_full:
-                LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
-                LayerShell.set_anchor(window, LayerShell.Edge.RIGHT, True)
-            else:
-                LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
+            LayerShell.set_anchor(window, LayerShell.Edge.LEFT, True)
             self._set_layer_size(window, target_width, target_height)
         self._apply_panel_size_hint(window, target_width, target_height)
+    
 
     def _ensure_backdrop_window(self) -> None:
         if self._backdrop_window:
@@ -575,29 +566,24 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         except Exception:
             return
 
-    @staticmethod
     def _panel_target_size(
+        self,
         panel_edge: str,
         panel_size: int,
-        panel_size_pct: int,
+        panel_thumbs_col: int,
         monitor_width: int,
         monitor_height: int,
         panel_margins: tuple[int, int, int, int],
     ) -> tuple[int, int]:
-        margin_top, margin_bottom, margin_left, margin_right = panel_margins
-        pct = max(1, min(100, int(panel_size_pct)))
+        item_w, item_h = self._get_item_outer_dimensions()
+        
         if panel_edge in {"left", "right"}:
             width = panel_size
-            available = (
-                monitor_height - margin_top - margin_bottom if monitor_height else 1
-            )
-            height = max(1, int(available * (pct / 100)))
+            height = item_h * panel_thumbs_col + self.GRID_PADDING * 2
         else:
             height = panel_size
-            available = (
-                monitor_width - margin_left - margin_right if monitor_width else 1
-            )
-            width = max(1, int(available * (pct / 100)))
+            width = item_w * panel_thumbs_col + self.GRID_PADDING * 2
+            
         return int(max(1, width)), int(max(1, height))
 
     @staticmethod
@@ -612,27 +598,26 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             except Exception:
                 pass
 
+    def _get_item_outer_dimensions(self) -> tuple[int, int]:
+        thumb_width = max(1, int(self.config.thumbnail_size))
+        if (self.config.thumbnail_shape or "landscape").lower() == "square":
+            thumb_height = thumb_width
+        else:
+            thumb_height = max(1, int(thumb_width * self.LANDSCAPE_RATIO))
+        
+        item_w = thumb_width + (self.CARD_PADDING + self.CARD_BORDER + self.CARD_MARGIN) * 2
+        item_h = thumb_height + (self.CARD_PADDING + self.CARD_BORDER + self.CARD_MARGIN) * 2
+        return int(item_w), int(item_h)
+
     def _derive_panel_size(self, panel_edge: str) -> int:
         if not self.config:
             return 1
-        base_width = max(1, int(self.config.thumbnail_size))
-        shape = (self.config.thumbnail_shape or "landscape").strip().lower()
-        if shape == "square":
-            base_height = base_width
-        else:
-            base_height = max(1, int(base_width * self.LANDSCAPE_RATIO))
+        item_w, item_h = self._get_item_outer_dimensions()
 
         if panel_edge in {"left", "right"}:
-            size = (
-                base_width
-                + self.GRID_PADDING * 2
-                + (self.CARD_PADDING + self.CARD_BORDER + self.CARD_MARGIN) * 2
-            )
+            size = item_w + self.GRID_PADDING * 2
         else:
-            size = (
-                base_height
-                + (self.CARD_PADDING + self.CARD_BORDER + self.CARD_MARGIN) * 2
-            )
+            size = item_h + self.GRID_PADDING * 2
         return max(1, int(size))
 
     def _derive_window_size(self) -> tuple[int, int]:
@@ -903,49 +888,54 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         if index == Gtk.INVALID_LIST_POSITION:
             return
 
-        cols = max(1, int(self.config.window_grid_cols))
-        rows_visible = max(1, int(self.config.window_grid_rows))
+        is_horiz = self._scroll_direction == "horizontal"
         
+        # How many rows/cols we want to see
+        if self._panel_mode:
+            visible_count = max(1, int(self.config.panel_thumbs_col))
+        else:
+            visible_count = max(1, int(self.config.window_grid_rows if not is_horiz else self.config.window_grid_cols))
+            
         thumb_width = max(1, int(self.config.thumbnail_size))
         if (self.config.thumbnail_shape or "landscape").lower() == "square":
             thumb_height = thumb_width
         else:
             thumb_height = max(1, int(thumb_width * self.LANDSCAPE_RATIO))
         
-        # Exact height of one row including all paddings/margins
+        item_outer_width = thumb_width + (self.CARD_PADDING + self.CARD_BORDER + self.CARD_MARGIN) * 2
         item_outer_height = thumb_height + (self.CARD_PADDING + self.CARD_BORDER + self.CARD_MARGIN) * 2
         
-        current_row = index // cols
-        adj = self._scroller.get_vadjustment()
+        adj = self._scroller.get_hadjustment() if is_horiz else self._scroller.get_vadjustment()
         if not adj:
             return
 
-        # Current view boundaries in terms of rows
+        item_size = item_outer_width if is_horiz else item_outer_height
         current_vscroll = adj.get_value()
         
-        # Calculate which row is currently at the top
-        # We use a small epsilon to avoid rounding issues
-        top_row = round(current_vscroll / item_outer_height)
-        bottom_row = top_row + rows_visible - 1
+        # In GridView panel mode, cols is always 1 in the non-scrolling direction
+        # In window mode, it's grid_cols
+        if self._panel_mode:
+            pos = index
+        else:
+            cols = max(1, int(self.config.window_grid_cols if not is_horiz else self.config.window_grid_rows))
+            pos = index // cols
+
+        top_item = round(current_vscroll / item_size)
+        bottom_item = top_item + visible_count - 1
 
         target_vscroll = current_vscroll
 
-        if current_row < top_row:
-            # Selection moved above the current view, snap to top of this row
-            target_vscroll = current_row * item_outer_height
-        elif current_row > bottom_row:
-            # Selection moved below the current view, snap so this row is at the bottom
-            target_vscroll = (current_row - rows_visible + 1) * item_outer_height
+        if pos < top_item:
+            target_vscroll = pos * item_size
+        elif pos > bottom_item:
+            target_vscroll = (pos - visible_count + 1) * item_size
         
         if target_vscroll != current_vscroll:
-            # Stop any existing animation to prevent conflict
             if self._snap_anim:
                 self._snap_anim.pause()
             
-            # Ensure target is within bounds
             target_vscroll = max(0, min(target_vscroll, adj.get_upper() - adj.get_page_size()))
             
-            # Create a smooth transition
             target = Adw.CallbackAnimationTarget.new(adj.set_value)
             self._snap_anim = Adw.TimedAnimation.new(
                 self._scroller, 
