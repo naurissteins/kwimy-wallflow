@@ -173,12 +173,16 @@ class ThumbnailMixin:
         return CACHE_DIR / f"{digest}.png"
 
     def _thumbnail_dimensions(self) -> tuple[int, int]:
+        resolver = getattr(self, "_thumb_dimensions_for_layout", None)
+        if callable(resolver):
+            return resolver()
+
         width = max(1, self.config.thumbnail_size if self.config else 256)
         if self._panel_full_width_enabled():
             # Match default CSS: grid padding 16px left/right, card padding 8px.
             available = int(getattr(self, "_panel_size", width))
-            available -= 32  # grid horizontal padding
-            full_width = max(1, available - 16)  # card padding
+            available -= getattr(self, "GRID_PADDING", 16) * 2
+            full_width = max(1, available - getattr(self, "CARD_PADDING", 8) * 2)
             width = max(1, full_width)
         shape = (self.config.thumbnail_shape if self.config else "landscape").lower()
         if shape == "square":

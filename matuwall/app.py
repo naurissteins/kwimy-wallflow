@@ -578,7 +578,11 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         monitor_height: int,
         panel_margins: tuple[int, int, int, int],
     ) -> tuple[int, int]:
-        item_w, item_h = self._get_item_outer_dimensions()
+        item_w, item_h = self._get_item_outer_dimensions(
+            panel_edge=panel_edge,
+            panel_size=panel_size,
+            apply_panel_full_width=True,
+        )
         
         if panel_edge in {"left", "right"}:
             width = panel_size
@@ -601,21 +605,60 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             except Exception:
                 pass
 
-    def _get_item_outer_dimensions(self) -> tuple[int, int]:
-        thumb_width = max(1, int(self.config.thumbnail_size))
-        if (self.config.thumbnail_shape or "landscape").lower() == "square":
-            thumb_height = thumb_width
-        else:
-            thumb_height = max(1, int(thumb_width * self.LANDSCAPE_RATIO))
-        
+    def _get_item_outer_dimensions(
+        self,
+        panel_edge: str | None = None,
+        panel_size: int | None = None,
+        apply_panel_full_width: bool = True,
+    ) -> tuple[int, int]:
+        thumb_width, thumb_height = self._thumb_dimensions_for_layout(
+            panel_edge=panel_edge,
+            panel_size=panel_size,
+            apply_panel_full_width=apply_panel_full_width,
+        )
         item_w = thumb_width + (self.CARD_PADDING + self.CARD_BORDER + self.CARD_MARGIN) * 2
         item_h = thumb_height + (self.CARD_PADDING + self.CARD_BORDER + self.CARD_MARGIN) * 2
         return int(item_w), int(item_h)
 
+    def _thumb_dimensions_for_layout(
+        self,
+        panel_edge: str | None = None,
+        panel_size: int | None = None,
+        apply_panel_full_width: bool = True,
+    ) -> tuple[int, int]:
+        if not self.config:
+            return (1, 1)
+        thumb_width = max(1, int(self.config.thumbnail_size))
+        shape = (self.config.thumbnail_shape or "landscape").strip().lower()
+        edge = str(panel_edge if panel_edge is not None else self._panel_edge).strip().lower()
+
+        if (
+            apply_panel_full_width
+            and self._panel_mode
+            and self._scroll_direction == "vertical"
+            and edge in {"left", "right"}
+        ):
+            target_panel_size = (
+                max(1, int(panel_size))
+                if panel_size is not None
+                else max(1, int(self._panel_size))
+            )
+            available = max(1, target_panel_size - self.GRID_PADDING * 2)
+            thumb_width = max(1, available - self.CARD_PADDING * 2)
+
+        if shape == "square":
+            thumb_height = thumb_width
+        else:
+            thumb_height = max(1, int(thumb_width * self.LANDSCAPE_RATIO))
+        return int(thumb_width), int(thumb_height)
+
     def _derive_panel_size(self, panel_edge: str) -> int:
         if not self.config:
             return 1
-        item_w, item_h = self._get_item_outer_dimensions()
+        item_w, item_h = self._get_item_outer_dimensions(
+            panel_edge=panel_edge,
+            apply_panel_full_width=False,
+        )
 
         if panel_edge in {"left", "right"}:
             size = item_w + self.GRID_PADDING * 2
@@ -914,14 +957,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         else:
             visible_count = max(1, int(self.config.window_grid_rows if not is_horiz else self.config.window_grid_cols))
             
-        thumb_width = max(1, int(self.config.thumbnail_size))
-        if (self.config.thumbnail_shape or "landscape").lower() == "square":
-            thumb_height = thumb_width
-        else:
-            thumb_height = max(1, int(thumb_width * self.LANDSCAPE_RATIO))
-        
-        item_outer_width = thumb_width + (self.CARD_PADDING + self.CARD_BORDER + self.CARD_MARGIN) * 2
-        item_outer_height = thumb_height + (self.CARD_PADDING + self.CARD_BORDER + self.CARD_MARGIN) * 2
+        item_outer_width, item_outer_height = self._get_item_outer_dimensions()
         
         adj = self._scroller.get_hadjustment() if is_horiz else self._scroller.get_vadjustment()
         if not adj:
@@ -938,7 +974,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             cols = max(1, int(self.config.window_grid_cols if not is_horiz else self.config.window_grid_rows))
             pos = index // cols
 
-        top_item = round(current_vscroll / item_size)
+        top_item = int(current_vscroll // item_size)
         bottom_item = top_item + visible_count - 1
 
         target_vscroll = current_vscroll
