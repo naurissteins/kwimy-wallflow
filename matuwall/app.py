@@ -885,8 +885,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             scroller.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER)
         else:
             scroller.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        if not self.config.show_scrollbar:
-            self._hide_scrollbars(scroller)
+        self._hide_scrollbars(scroller)
         self._scroller = scroller
 
         if not self.config.mouse_enabled:
