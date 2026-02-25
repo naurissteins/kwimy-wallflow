@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import gi
 
 gi.require_version("Gtk", "4.0")

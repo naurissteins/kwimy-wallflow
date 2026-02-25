@@ -10,7 +10,7 @@ import gi
 gi.require_version("Gtk", "4.0")
 gi.require_version("Adw", "1")
 
-from gi.repository import Adw, Gdk, Gio, GLib, Gtk
+from gi.repository import Adw, Gio, GLib, Gtk
 
 from .config import AppConfig
 from .paths import APP_ID, IPC_SOCKET_PATH, PID_FILE_PATH, UI_PID_FILE_PATH
