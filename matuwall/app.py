@@ -80,6 +80,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
         self._ipc_watch_id: int | None = None
         self._backdrop_window: Gtk.Window | None = None
         self._scrollbar_css_applied = False
+        self._snap_anim: Adw.TimedAnimation | None = None
 
     def do_startup(self) -> None:
         Adw.Application.do_startup(self)
@@ -937,8 +938,24 @@ class MatuwallApp(Adw.Application, NavigationMixin, ThumbnailMixin):
             target_vscroll = (current_row - rows_visible + 1) * item_outer_height
         
         if target_vscroll != current_vscroll:
-            # Use an animation if you want it smoother, or just set_value for instant snap
-            adj.set_value(max(0, target_vscroll))
+            # Stop any existing animation to prevent conflict
+            if self._snap_anim:
+                self._snap_anim.pause()
+            
+            # Ensure target is within bounds
+            target_vscroll = max(0, min(target_vscroll, adj.get_upper() - adj.get_page_size()))
+            
+            # Create a smooth transition
+            target = Adw.CallbackAnimationTarget.new(adj.set_value)
+            self._snap_anim = Adw.TimedAnimation.new(
+                self._scroller, 
+                current_vscroll, 
+                target_vscroll, 
+                250, 
+                target
+            )
+            self._snap_anim.set_easing(Adw.Easing.EASE_OUT_CUBIC)
+            self._snap_anim.play()
 
     def _on_grid_item_activated(self, _grid_view, position: int) -> None:
         if self._list_store:
