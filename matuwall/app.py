@@ -27,9 +27,10 @@ from .ui.navigation import NavigationMixin
 from .ui.panel import LAYER_SHELL_ERROR, LayerShell, PanelMixin
 from .ui.runtime import RuntimeMixin
 from .ui.thumbnails import ThumbnailMixin
+from .ui.window_state import WindowStateMixin
 
 
-class MatuwallApp(Adw.Application, NavigationMixin, RuntimeMixin, PanelMixin, ContentMixin, ThumbnailMixin):
+class MatuwallApp(Adw.Application, NavigationMixin, RuntimeMixin, WindowStateMixin, PanelMixin, ContentMixin, ThumbnailMixin):
     LANDSCAPE_RATIO = 9 / 16
     GRID_PADDING = 16
     CARD_PADDING = 8
@@ -115,44 +116,6 @@ class MatuwallApp(Adw.Application, NavigationMixin, RuntimeMixin, PanelMixin, Co
             return
 
         self._show_window()
-
-    def _show_window(self) -> None:
-        if not self._window:
-            return
-        if self._window.get_visible():
-            return
-        if self._needs_reload:
-            self._reload_content()
-        if self._backdrop_enabled:
-            self._show_backdrop()
-        self._window.present()
-        if self._grid_view:
-            self._grid_view.grab_focus()
-        if self._panel_mode:
-            GLib.idle_add(self._refresh_layer_shell)
-
-    def _toggle_window(self) -> None:
-        if not self._window:
-            return
-        if self._window.get_visible():
-            self._hide_window()
-        else:
-            self._show_window()
-
-    def _hide_window(self) -> None:
-        if not self._daemon_enabled:
-            if self._keep_ui_alive and os.environ.get("MATUWALL_UI") == "1":
-                if self._window:
-                    self._window.hide()
-                if self._backdrop_window:
-                    self._backdrop_window.hide()
-                return
-            self.quit()
-            return
-        if self._window:
-            self._window.hide()
-        if self._backdrop_window:
-            self._backdrop_window.hide()
 
     def _ensure_window(self) -> None:
         if self._window:
