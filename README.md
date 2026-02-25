@@ -5,11 +5,13 @@ A minimal GTK4 + libadwaita wallpaper picker for Wayland. Select a wallpaper and
 NOTE: Matuwall does not manage matugen configuration, users are expected to have their own matugen setup in place.
 
 ## Features
-- Lazy-loads wallpapers from a configured folder
-- Runs `matugen image <wallpaper> -m <mode>` on click
-- Thumbnail caching in `~/.cache/matuwall/`
-- Configs `~/.config/matuwall/config.json`
-- CSS theming `~/.config/matuwall/style.css`
+- Two display modes:
+  - Centered window picker
+  - Edge panel picker via layer-shell (`left`, `right`, `top`, `bottom`)
+- Daemon + IPC controls for fast open/close (`--show`, `--hide`, `--toggle`, `--quit`)
+- Lazy, batched wallpaper loading for responsive startup
+- Background thumbnail generation with persistent cache in `~/.cache/matuwall/`
+- User theming via `~/.config/matuwall/style.css`
 
 > [!TIP]  
 > If `"keep_ui_alive": true`, changes to `config.json`, `~/.config/matuwall/style.css`, or your wallpaper folder won’t take effect until you restart the `matuwall` service `(systemctl --user restart matuwall.service)`
