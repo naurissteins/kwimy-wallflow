@@ -18,7 +18,8 @@ class WindowStateMixin:
             return
         if self._needs_reload:
             self._reload_content()
-        if self._backdrop_enabled:
+        # Backdrop click-to-close is intended for panel mode only.
+        if self._panel_mode and self._backdrop_enabled:
             self._show_backdrop()
         self._window.present()
         if self._grid_view:

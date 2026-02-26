@@ -47,7 +47,7 @@ class PanelMixin:
         if self._keep_ui_alive and os.environ.get("MATUWALL_UI") == "1":
             self._hide_window()
             return True
-        if self._backdrop_enabled and self._backdrop_window:
+        if self._panel_mode and self._backdrop_enabled and self._backdrop_window:
             self._hide_window()
             return True
         return False

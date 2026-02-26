@@ -166,7 +166,7 @@ class WindowSetupMixin:
 
         if self.config and self.config.panel_mode and LayerShell is None:
             self._log("gtk4-layer-shell not available; panel_mode disabled")
-        if self._backdrop_enabled:
+        if self._panel_mode and self._backdrop_enabled:
             self._ensure_backdrop_window()
         if self._panel_mode:
             self._apply_layer_shell(
