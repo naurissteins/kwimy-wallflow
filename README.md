@@ -100,15 +100,15 @@ Default config:
   "theme": {
     "window_bg": "rgba(15, 18, 22, 0.58)",
     "text_color": "#e7e7e7",
-    "header_bg_start": "#141922",
-    "header_bg_end": "#0f1216",
+    "header_bg_start": "rgba(20, 25, 34, 0.58)",
+    "header_bg_end": "rgba(20, 25, 34, 0.78)",
     "backdrop_bg": "rgba(0, 0, 0, 0.0)",
     "card_bg": "rgba(255, 255, 255, 0.04)",
     "card_border": "rgba(255, 255, 255, 0.05)",
     "card_hover_bg": "rgba(255, 255, 255, 0.08)",
     "card_hover_border": "rgba(255, 255, 255, 0.2)",
     "card_selected_bg": "rgba(255, 255, 255, 0.12)",
-    "card_selected_border": "rgba(255, 255, 255, 0.35)",
+    "card_selected_border": "rgba(255, 255, 255, 0.25)",
     "window_radius": 15,
     "card_radius": 14,
     "thumb_radius": 10
