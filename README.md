@@ -128,6 +128,7 @@ Default config:
 
 ## Hyprland
 ```
+### Window Mode
 windowrule = float true, match:class com\.kwimy\.Matuwall
 windowrule = animation slide top, match:class com\.kwimy\.Matuwall
 windowrule = rounding 15, match:class com\.kwimy\.Matuwall
@@ -135,8 +136,14 @@ windowrule = border_size 0, match:class com\.kwimy\.Matuwall
 windowrule = rounding_power 2, match:class com\.kwimy\.Matuwall
 windowrule = no_shadow on, match:class com\.kwimy\.Matuwall
 
+### Panel Mode
 layerrule = match:namespace matuwall, blur on
 layerrule = match:namespace matuwall, ignore_alpha 0.5
+
+### Backdrop
+layerrule = match:namespace matuwall-backdrop, animation fade
+# layerrule = match:namespace matuwall-backdrop, blur on
+# layerrule = match:namespace matuwall-backdrop, ignore_alpha 0.2
 ```
 
 ## Theme
