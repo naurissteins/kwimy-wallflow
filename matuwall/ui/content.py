@@ -80,7 +80,7 @@ class ContentMixin:
         if not self._window or not self.config:
             return
         toolbar_view = Adw.ToolbarView()
-        if self.config.window_decorations:
+        if not self._panel_mode and self.config.window_decorations:
             header = Adw.HeaderBar()
             header.set_title_widget(Gtk.Label(label="Matuwall"))
             header.add_css_class("matuwall-header")
