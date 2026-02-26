@@ -1,21 +1,19 @@
 # Matuwall
 
-A minimal GTK4 + libadwaita wallpaper picker for Wayland. Select a wallpaper and Matuwall triggers [matugen](https://github.com/InioX/matugen) to generate and apply colors from the chosen image.
+A minimal GTK4 + libadwaita wallpaper picker for Wayland compositor. Matuwall triggers [matugen](https://github.com/InioX/matugen) to generate and apply colors from the chosen image.
 
-NOTE: Matuwall does not manage matugen configuration, users are expected to have their own matugen setup in place.
+NOTE: Matuwall does not manage and include [matugen](https://github.com/InioX/matugen) configuration, you have to use your own matugen setup.  
 
-## Features
-- Two UI layouts: centered window mode and edge panel mode (`left`, `right`, `top`, `bottom`)
-- Daemon-first workflow with IPC controls (`--show`, `--hide`, `--toggle`, `--quit`, `--status`)
-- Responsive startup with lazy, batched wallpaper loading
+## 🔥 Features
+- Two UI layouts: centered window mode and edge panel (layer shell) mode (`left`, `right`, `top`, `bottom`)
+- Daemon first workflow with IPC controls (`--show`, `--hide`, `--toggle`, `--reload`, `--quit`, `--status`)
 - Background thumbnail generation with persistent cache in `~/.cache/matuwall/`
 - One-action apply flow: activate a thumbnail to run `matugen image <wallpaper> -m <mode>`
-- Keyboard navigation (`Enter` apply, `Esc` close), plus optional mouse interaction
-- Panel auto-fit behavior: oversized `panel_thumbs_col` values are capped to available monitor space
-- Theme tokens in `config.json` (colors + corner radius), with optional `colors.json` color override and fixed layout metrics for stability
+- Keyboard navigation (`Enter` apply, `Esc` close, `Arrow keys` to navigate between thumbnails), plus optional mouse interaction
+- Styling in `config.json` (colors + corner radius), with optional `colors.json` color override, useful for customizing the appearance with your own colorscheme using matugen
 
 > [!TIP]  
-> If `"keep_ui_alive": true`, changes to `config.json`, `colors.json`, or your wallpaper folder won’t take effect until you restart the `matuwall` service `(systemctl --user restart matuwall.service)`
+> If `"keep_ui_alive": true`, changes to `config.json`, `colors.json`, or your wallpaper folder won’t take effect until you restart the `matuwall` service `systemctl --user restart matuwall.service` or `matuwall --reload`
 
 ## Install Dependencies
 ```
@@ -38,12 +36,14 @@ Control it from any terminal:
 matuwall --toggle
 matuwall --show
 matuwall --hide
+matuwall --reload
 matuwall --quit
 matuwall --status
 ```
 
 Behavior:
 - `--show` / `--hide` / `--toggle` / `--quit` use IPC and do not create duplicate windows
+- `--reload` reloads daemon config and restarts UI if it is currently running
 - The daemon itself runs without GTK and starts a UI process only when needed
 - If `keep_ui_alive` is `false`, the UI process exits on hide (lower idle memory)
 - `config.json` is watched and reloaded by the daemon in ~0.5s; UI-only changes apply on next UI start when `keep_ui_alive` is `true`

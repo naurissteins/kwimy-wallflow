@@ -110,6 +110,8 @@ class MatuwallDaemon:
         elif command == "quit":
             self._hide_ui()
             self._running = False
+        elif command == "reload":
+            self._reload()
 
     def _show_ui(self) -> None:
         if self._ui_running():
@@ -213,6 +215,21 @@ class MatuwallDaemon:
             except OSError:
                 pass
         self._clear_ui_pid()
+
+    def _reload(self) -> None:
+        ui_was_running = self._ui_running()
+        self._load_config(force=True)
+        if not ui_was_running:
+            LOGGER.info("Reloaded daemon config")
+            return
+        keep_ui_alive = self._keep_ui_alive
+        self._keep_ui_alive = False
+        try:
+            self._hide_ui()
+        finally:
+            self._keep_ui_alive = keep_ui_alive
+        self._show_ui()
+        LOGGER.info("Reloaded daemon config and restarted UI")
 
     def _wait_for_exit(self, pid: int, timeout: float) -> None:
         deadline = time.time() + timeout

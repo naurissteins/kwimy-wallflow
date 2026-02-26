@@ -14,6 +14,7 @@ def parse_cli_command(argv: list[str]) -> str | None:
     parser.add_argument("--daemon", action="store_true")
     parser.add_argument("--ui", action="store_true")
     parser.add_argument("--status", action="store_true")
+    parser.add_argument("--reload", action="store_true")
     parser.add_argument("--show", action="store_true")
     parser.add_argument("--hide", action="store_true")
     parser.add_argument("--toggle", action="store_true")
@@ -29,6 +30,8 @@ def parse_cli_command(argv: list[str]) -> str | None:
         return "toggle"
     if opts.quit:
         return "quit"
+    if opts.reload:
+        return "reload"
     if opts.status:
         return "status"
     return None
