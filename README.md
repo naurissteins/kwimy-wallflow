@@ -12,10 +12,10 @@ NOTE: Matuwall does not manage matugen configuration, users are expected to have
 - One-action apply flow: activate a thumbnail to run `matugen image <wallpaper> -m <mode>`
 - Keyboard navigation (`Enter` apply, `Esc` close), plus optional mouse interaction
 - Panel auto-fit behavior: oversized `panel_thumbs_col` values are capped to available monitor space
-- Built-in theme tokens in `config.json` (colors + corner radius), with fixed layout metrics for stability
+- Theme tokens in `config.json` (colors + corner radius), with optional `colors.json` color override and fixed layout metrics for stability
 
 > [!TIP]  
-> If `"keep_ui_alive": true`, changes to `config.json` or your wallpaper folder won’t take effect until you restart the `matuwall` service `(systemctl --user restart matuwall.service)`
+> If `"keep_ui_alive": true`, changes to `config.json`, `colors.json`, or your wallpaper folder won’t take effect until you restart the `matuwall` service `(systemctl --user restart matuwall.service)`
 
 ## Install Dependencies
 ```
@@ -148,6 +148,7 @@ layerrule = match:namespace matuwall-backdrop, animation fade
 
 ## Theme
 Theme customization is controlled from `~/.config/matuwall/config.json` under `theme`.
+Optional: if `~/.config/matuwall/colors.json` exists, its color keys override `theme` colors.
 Only color and radius tokens are configurable. Layout values (padding, margins, sizes) are fixed to keep scrolling and panel sizing stable.
 
 ## Notes
@@ -162,6 +163,7 @@ Only color and radius tokens are configurable. Layout values (padding, margins, 
 - `keep_ui_alive` keeps the UI process running between show/hide (faster open, higher memory use).
 - `theme.window_radius`, `theme.card_radius`, and `theme.thumb_radius` are clamped to `0..64`.
 - Invalid color strings in `theme` are ignored and fallback to defaults.
+- `colors.json` can override theme colors (`window_bg`, `text_color`, `header_bg_start`, `header_bg_end`, `backdrop_bg`, `card_bg`, `card_border`, `card_hover_bg`, `card_hover_border`, `card_selected_bg`, `card_selected_border`).
 - If `theme.backdrop_bg` is fully transparent, Matuwall applies a tiny internal alpha so outside-click close still works in panel mode.
 - `panel_mode` enables layer-shell mode (requires `gtk-layer-shell` with Gtk4 typelibs).
 - `panel_edge` can be `left`, `right`, `top`, `bottom`.

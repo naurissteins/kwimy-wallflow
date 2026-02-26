@@ -44,6 +44,32 @@ class ConfigTests(unittest.TestCase):
             self.assertEqual(loaded.panel_thumbs_col, 7)
             self.assertEqual(loaded.window_grid_cols, 4)
 
+    def test_load_config_supports_trailing_commas(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cfg_dir = root / "config"
+            cfg_dir.mkdir()
+
+            cfg_path = cfg_dir / "config.json"
+            cfg_path.write_text(
+                """
+{
+  "main": {
+    "window_grid_cols": 4,
+  },
+}
+""".strip()
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(config, "CONFIG_DIR", cfg_dir), patch.object(
+                config, "CONFIG_PATH", cfg_path
+            ):
+                loaded = config.load_config()
+
+            self.assertEqual(loaded.window_grid_cols, 4)
+
     def test_load_config_supports_nested_sections(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
@@ -71,6 +97,102 @@ class ConfigTests(unittest.TestCase):
             self.assertEqual(loaded.window_grid_cols, 5)
             self.assertEqual(loaded.theme_window_radius, 22)
             self.assertEqual(loaded.panel_thumbs_col, 9)
+
+    def test_colors_json_overrides_theme_colors_only(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cfg_dir = root / "config"
+            cfg_dir.mkdir()
+
+            cfg_path = cfg_dir / "config.json"
+            cfg_path.write_text(
+                json.dumps(
+                    {
+                        "theme": {
+                            "window_bg": "rgba(10, 10, 10, 0.5)",
+                            "window_radius": 30,
+                        }
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            colors_path = cfg_dir / "colors.json"
+            colors_path.write_text(
+                json.dumps(
+                    {
+                        "window_bg": "rgba(1, 2, 3, 0.8)",
+                        "theme": {"text_color": "#abcdef"},
+                        "window_radius": 0,
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(config, "CONFIG_DIR", cfg_dir), patch.object(
+                config, "CONFIG_PATH", cfg_path
+            ):
+                loaded = config.load_config()
+
+            self.assertEqual(loaded.theme_window_bg, "rgba(1, 2, 3, 0.8)")
+            self.assertEqual(loaded.theme_text_color, "#abcdef")
+            self.assertEqual(loaded.theme_window_radius, 30)
+
+    def test_colors_json_supports_trailing_commas(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cfg_dir = root / "config"
+            cfg_dir.mkdir()
+
+            cfg_path = cfg_dir / "config.json"
+            cfg_path.write_text("{}\n", encoding="utf-8")
+            (cfg_dir / "colors.json").write_text(
+                """
+{
+  "window_bg": "rgba(11, 22, 33, 0.77)",
+}
+""".strip()
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(config, "CONFIG_DIR", cfg_dir), patch.object(
+                config, "CONFIG_PATH", cfg_path
+            ):
+                loaded = config.load_config()
+
+            self.assertEqual(loaded.theme_window_bg, "rgba(11, 22, 33, 0.77)")
+
+    def test_colors_json_is_resolved_relative_to_config_path(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cfg_dir = root / "config_a"
+            alt_dir = root / "config_b"
+            cfg_dir.mkdir()
+            alt_dir.mkdir()
+
+            cfg_path = cfg_dir / "config.json"
+            cfg_path.write_text(
+                json.dumps({"theme": {"window_bg": "rgba(15, 18, 22, 0.58)"}})
+                + "\n",
+                encoding="utf-8",
+            )
+            (cfg_dir / "colors.json").write_text(
+                json.dumps({"window_bg": "rgba(11, 22, 33, 0.77)"}) + "\n",
+                encoding="utf-8",
+            )
+            (alt_dir / "colors.json").write_text(
+                json.dumps({"window_bg": "rgba(99, 99, 99, 0.99)"}) + "\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(config, "CONFIG_DIR", alt_dir), patch.object(
+                config, "CONFIG_PATH", cfg_path
+            ):
+                loaded = config.load_config()
+
+            self.assertEqual(loaded.theme_window_bg, "rgba(11, 22, 33, 0.77)")
 
     def test_write_config_persists_expected_keys(self) -> None:
         with tempfile.TemporaryDirectory() as td:

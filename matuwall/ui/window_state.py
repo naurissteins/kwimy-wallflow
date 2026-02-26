@@ -9,13 +9,41 @@ gi.require_version("Adw", "1")
 
 from gi.repository import GLib
 
+from ..config import load_config
+
 
 class WindowStateMixin:
+    _LIVE_THEME_FIELDS = (
+        "theme_window_bg",
+        "theme_text_color",
+        "theme_header_bg_start",
+        "theme_header_bg_end",
+        "theme_backdrop_bg",
+        "theme_card_bg",
+        "theme_card_border",
+        "theme_card_hover_bg",
+        "theme_card_hover_border",
+        "theme_card_selected_bg",
+        "theme_card_selected_border",
+        "theme_window_radius",
+        "theme_card_radius",
+        "theme_thumb_radius",
+    )
+
+    def _refresh_theme_config(self) -> None:
+        if not self.config:
+            return
+        latest = load_config()
+        for field in self._LIVE_THEME_FIELDS:
+            setattr(self.config, field, getattr(latest, field))
+        self._apply_theme_css()
+
     def _show_window(self) -> None:
         if not self._window:
             return
         if self._window.get_visible():
             return
+        self._refresh_theme_config()
         if self._needs_reload:
             self._reload_content()
         # Backdrop click-to-close is intended for panel mode only.
