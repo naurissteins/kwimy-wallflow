@@ -10,6 +10,7 @@ gi.require_version("Gdk", "4.0")
 
 from gi.repository import Gdk, Gtk
 
+from ..config import css_color_is_fully_transparent
 from ..paths import ASSETS_DIR
 
 
@@ -40,6 +41,11 @@ class AppBootstrapMixin:
         display = Gdk.Display.get_default()
         if not display:
             return
+        backdrop_bg = self.config.theme_backdrop_bg
+        if css_color_is_fully_transparent(backdrop_bg):
+            # Fully transparent backdrop can lose click target behavior on
+            # some compositors; keep a tiny alpha so outside-click close works.
+            backdrop_bg = "rgba(0, 0, 0, 0.01)"
         css = f"""
 window {{
     background: {self.config.theme_window_bg};
@@ -48,7 +54,7 @@ window {{
 }}
 
 .matuwall-backdrop {{
-    background: {self.config.theme_backdrop_bg};
+    background: {backdrop_bg};
 }}
 
 .matuwall-header {{

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from dataclasses import dataclass
 
 from .paths import CONFIG_DIR
@@ -70,7 +71,7 @@ DEFAULT_CONFIG = AppConfig(
     theme_text_color="#e7e7e7",
     theme_header_bg_start="#141922",
     theme_header_bg_end="#0f1216",
-    theme_backdrop_bg="rgba(0, 0, 0, 1)",
+    theme_backdrop_bg="rgba(0, 0, 0, 0.0)",
     theme_card_bg="rgba(255, 255, 255, 0.04)",
     theme_card_border="rgba(255, 255, 255, 0.05)",
     theme_card_hover_bg="rgba(255, 255, 255, 0.08)",
@@ -147,6 +148,54 @@ def _sanitize_css_color(value: object, default: str) -> str:
     if any(ch in color for ch in ("{", "}", ";", "\n", "\r")):
         return default
     return color
+
+
+def _parse_alpha_component(value: str) -> float | None:
+    raw = value.strip()
+    if not raw:
+        return None
+    if raw.endswith("%"):
+        try:
+            return float(raw[:-1]) / 100.0
+        except ValueError:
+            return None
+    try:
+        return float(raw)
+    except ValueError:
+        return None
+
+
+def css_color_is_fully_transparent(value: str) -> bool:
+    color = value.strip().lower()
+    if color == "transparent":
+        return True
+
+    if color.startswith("#"):
+        hex_value = color[1:]
+        if len(hex_value) == 4:
+            try:
+                return int(hex_value[3] * 2, 16) == 0
+            except ValueError:
+                return False
+        if len(hex_value) == 8:
+            try:
+                return int(hex_value[6:8], 16) == 0
+            except ValueError:
+                return False
+        return False
+
+    match = re.match(r"^(rgba|hsla)\((.*)\)$", color)
+    if not match:
+        return False
+    content = match.group(2).strip()
+    if "/" in content:
+        alpha = _parse_alpha_component(content.rsplit("/", 1)[1])
+        return alpha is not None and alpha <= 0.0
+    parts = [part.strip() for part in content.split(",")]
+    if len(parts) < 4:
+        return False
+    alpha = _parse_alpha_component(parts[-1])
+    return alpha is not None and alpha <= 0.0
 
 
 def load_config() -> AppConfig:

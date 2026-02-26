@@ -53,7 +53,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, AppBootstrapMixin, RuntimeMi
         self._panel_thumbs_col: int = 3
         self._panel_margins: tuple[int, int, int, int] = (0, 0, 0, 0)
         self._backdrop_enabled = True
-        self._backdrop_opacity = 0.0
+        self._backdrop_opacity = 1.0
         self._backdrop_click_to_close = True
         self._keep_ui_alive = False
         self._needs_reload = False

@@ -206,6 +206,15 @@ class ConfigTests(unittest.TestCase):
             self.assertEqual(loaded.theme_window_radius, config.MAX_THEME_RADIUS)
             self.assertEqual(loaded.theme_card_radius, 0)
 
+    def test_css_color_transparency_detection(self) -> None:
+        self.assertTrue(config.css_color_is_fully_transparent("transparent"))
+        self.assertTrue(config.css_color_is_fully_transparent("rgba(0,0,0,0)"))
+        self.assertTrue(config.css_color_is_fully_transparent("rgba(0 0 0 / 0)"))
+        self.assertTrue(config.css_color_is_fully_transparent("#00000000"))
+        self.assertTrue(config.css_color_is_fully_transparent("#0000"))
+        self.assertFalse(config.css_color_is_fully_transparent("rgba(0,0,0,0.2)"))
+        self.assertFalse(config.css_color_is_fully_transparent("#000000"))
+
 
 if __name__ == "__main__":
     unittest.main()

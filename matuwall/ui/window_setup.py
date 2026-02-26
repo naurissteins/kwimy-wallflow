@@ -111,13 +111,7 @@ class WindowSetupMixin:
         self._panel_thumbs_col = panel_thumbs_col
         self._panel_margins = panel_margins
         self._keep_ui_alive = bool(self.config.keep_ui_alive) if self.config else False
-        if (
-            self._backdrop_enabled
-            and self._backdrop_click_to_close
-            and self._backdrop_opacity <= 0.0
-        ):
-            # Keep a tiny alpha so the compositor still delivers input.
-            self._backdrop_opacity = 0.01
+        self._backdrop_opacity = 1.0
 
     def _configure_window_geometry(
         self,
