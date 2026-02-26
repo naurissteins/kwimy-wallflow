@@ -151,6 +151,31 @@ Theme customization is controlled from `~/.config/matuwall/config.json` under `t
 Optional: if `~/.config/matuwall/colors.json` exists, its color keys override `theme` colors.
 Only color and radius tokens are configurable. Layout values (padding, margins, sizes) are fixed to keep scrolling and panel sizing stable.
 
+## Style Matuwall with Matugen
+1. Create a new file `matuwall-colors.json` in `~/.config/matugen/templates`
+2. Add the following content to `matuwall-colors.json`:
+```json
+{
+  "window_bg": "{{colors.background.default.rgba | set_alpha: 0.58}}",
+  "text_color": "{{colors.primary.default.hex}}",
+  "header_bg_start": "{{colors.background.default.rgba | set_alpha: 0.58}}",
+  "header_bg_end": "{{colors.background.default.rgba | set_alpha: 0.78}}",
+  "backdrop_bg": "{{colors.background.default.rgba | set_alpha: 0}}",
+  "card_bg": "{{colors.secondary.dark.rgba | set_alpha: 0.04}}",
+  "card_border": "{{colors.secondary.dark.rgba | set_alpha: 0.05}}",
+  "card_hover_bg": "{{colors.secondary.dark.rgba | set_alpha: 0.08}}",
+  "card_hover_border": "{{colors.primary.default.rgba | set_alpha: 0.2}}",
+  "card_selected_bg": "{{colors.primary.default.rgba | set_alpha: 0.12}}",
+  "card_selected_border": "{{colors.primary.default.rgba | set_alpha: 0.35}}"
+}
+```
+3. Then add the following to your matugen config file `~/.config/matugen/config.toml`:
+```toml
+[templates.matuwall]
+input_path = '~/.config/matugen/templates/matuwall-colors.json'
+output_path = '~/.config/matuwall/colors.json'
+```
+
 ## Notes
 - `matugen` must be available in `PATH`.
 - Wallpapers are read from `wallpaper_dir` and support: `jpg`, `jpeg`, `png`, `webp`, `bmp`, `gif`.
