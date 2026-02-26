@@ -12,10 +12,10 @@ NOTE: Matuwall does not manage matugen configuration, users are expected to have
 - One-action apply flow: activate a thumbnail to run `matugen image <wallpaper> -m <mode>`
 - Keyboard navigation (`Enter` apply, `Esc` close), plus optional mouse interaction
 - Panel auto-fit behavior: oversized `panel_thumbs_col` values are capped to available monitor space
-- User theming through `~/.config/matuwall/style.css`
+- Built-in theme tokens in `config.json` (colors + corner radius), with fixed layout metrics for stability
 
 > [!TIP]  
-> If `"keep_ui_alive": true`, changes to `config.json`, `~/.config/matuwall/style.css`, or your wallpaper folder won’t take effect until you restart the `matuwall` service `(systemctl --user restart matuwall.service)`
+> If `"keep_ui_alive": true`, changes to `config.json` or your wallpaper folder won’t take effect until you restart the `matuwall` service `(systemctl --user restart matuwall.service)`
 
 ## Install Dependencies
 ```
@@ -50,10 +50,12 @@ Behavior:
 ## Panel Mode (Layer Shell)
 Use panel mode to anchor Matuwall to a Wayland screen edge:
 ```
-"panel_mode": true,
-"panel_edge": "left",
-"panel_thumbs_col": 3,
-"panel_margin_top": 30
+"panel": {
+  "panel_mode": true,
+  "panel_edge": "left",
+  "panel_thumbs_col": 3,
+  "panel_margin_top": 30
+}
 ```
 `panel_thumbs_col` is treated as a requested visible count and auto-capped to monitor space, so the panel always stays fully on-screen.
 
@@ -82,25 +84,45 @@ Config file path:
 Default config:
 ```json
 {
-  "wallpaper_dir": "~/Pictures/Wallpapers",
-  "matugen_mode": "dark",
-  "thumbnail_size": 256,
-  "thumbnail_shape": "landscape",
-  "batch_size": 16,
-  "window_decorations": false,
-  "window_grid_cols": 3,
-  "window_grid_rows": 3,
-  "window_grid_max_width_pct": 80,
-  "mouse_enabled": true,
-  "keep_ui_alive": false,
-  "panel_mode": false,
-  "panel_edge": "left",
-  "panel_thumbs_col": 3,
-  "panel_exclusive_zone": -1,
-  "panel_margin_top": 0,
-  "panel_margin_bottom": 0,
-  "panel_margin_left": 0,
-  "panel_margin_right": 0
+  "main": {
+    "wallpaper_dir": "~/Pictures/Wallpapers",
+    "matugen_mode": "dark",
+    "thumbnail_size": 256,
+    "thumbnail_shape": "landscape",
+    "batch_size": 16,
+    "window_decorations": false,
+    "window_grid_cols": 3,
+    "window_grid_rows": 3,
+    "window_grid_max_width_pct": 80,
+    "mouse_enabled": true,
+    "keep_ui_alive": false
+  },
+  "theme": {
+    "window_bg": "rgba(15, 18, 22, 0.58)",
+    "text_color": "#e7e7e7",
+    "header_bg_start": "#141922",
+    "header_bg_end": "#0f1216",
+    "backdrop_bg": "rgba(0, 0, 0, 1)",
+    "card_bg": "rgba(255, 255, 255, 0.04)",
+    "card_border": "rgba(255, 255, 255, 0.05)",
+    "card_hover_bg": "rgba(255, 255, 255, 0.08)",
+    "card_hover_border": "rgba(255, 255, 255, 0.2)",
+    "card_selected_bg": "rgba(255, 255, 255, 0.12)",
+    "card_selected_border": "rgba(255, 255, 255, 0.35)",
+    "window_radius": 15,
+    "card_radius": 14,
+    "thumb_radius": 10
+  },
+  "panel": {
+    "panel_mode": false,
+    "panel_edge": "left",
+    "panel_thumbs_col": 3,
+    "panel_exclusive_zone": -1,
+    "panel_margin_top": 0,
+    "panel_margin_bottom": 0,
+    "panel_margin_left": 0,
+    "panel_margin_right": 0
+  }
 }
 ```
 
@@ -117,9 +139,9 @@ layerrule = match:namespace matuwall, blur on
 layerrule = match:namespace matuwall, ignore_alpha 0.5
 ```
 
-## Styling
-Edit `~/.config/matuwall/style.css` to change background, borders, and typography. 
-If you want to refresh it, delete the file and restart the app and it will be regenerated from the default template.
+## Theme
+Theme customization is controlled from `~/.config/matuwall/config.json` under `theme`.
+Only color and radius tokens are configurable. Layout values (padding, margins, sizes) are fixed to keep scrolling and panel sizing stable.
 
 ## Notes
 - `matugen` must be available in `PATH`.
@@ -131,6 +153,8 @@ If you want to refresh it, delete the file and restart the app and it will be re
 - `window_grid_max_width_pct` caps the window width as a percentage of the screen (default 80).
 - `mouse_enabled` toggles pointer interaction (click, hover, scroll).
 - `keep_ui_alive` keeps the UI process running between show/hide (faster open, higher memory use).
+- `theme.window_radius`, `theme.card_radius`, and `theme.thumb_radius` are clamped to `0..64`.
+- Invalid color strings in `theme` are ignored and fallback to defaults.
 - `panel_mode` enables layer-shell mode (requires `gtk-layer-shell` with Gtk4 typelibs).
 - `panel_edge` can be `left`, `right`, `top`, `bottom`.
 - `panel_thumbs_col` is the number of thumbnails to display (width for top/bottom panels, height for left/right). If it's too large for your monitor/margins, Matuwall automatically caps visible thumbs to fit on screen.

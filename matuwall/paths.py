@@ -22,7 +22,6 @@ RUNTIME_DIR = _xdg_dir(
 ) / APP_NAME
 
 ASSETS_DIR = Path(__file__).resolve().parent / "assets"
-USER_CSS_PATH = CONFIG_DIR / "style.css"
 IPC_SOCKET_PATH = RUNTIME_DIR / "ipc.sock"
 PID_FILE_PATH = RUNTIME_DIR / "daemon.pid"
 UI_PID_FILE_PATH = RUNTIME_DIR / "ui.pid"

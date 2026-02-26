@@ -20,10 +20,7 @@ class ConfigTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             cfg_dir = root / "config"
-            assets_dir = root / "assets"
             cfg_dir.mkdir()
-            assets_dir.mkdir()
-            (assets_dir / "style.css").write_text("window {}\n", encoding="utf-8")
 
             cfg_path = cfg_dir / "config.json"
             cfg_path.write_text(
@@ -41,29 +38,59 @@ class ConfigTests(unittest.TestCase):
 
             with patch.object(config, "CONFIG_DIR", cfg_dir), patch.object(
                 config, "CONFIG_PATH", cfg_path
-            ), patch.object(config, "ASSETS_DIR", assets_dir):
+            ):
                 loaded = config.load_config()
 
             self.assertEqual(loaded.panel_thumbs_col, 7)
             self.assertEqual(loaded.window_grid_cols, 4)
 
+    def test_load_config_supports_nested_sections(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cfg_dir = root / "config"
+            cfg_dir.mkdir()
+
+            cfg_path = cfg_dir / "config.json"
+            cfg_path.write_text(
+                json.dumps(
+                    {
+                        "main": {"window_grid_cols": 5},
+                        "theme": {"window_radius": 22},
+                        "panel": {"panel_thumbs_col": 9},
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(config, "CONFIG_DIR", cfg_dir), patch.object(
+                config, "CONFIG_PATH", cfg_path
+            ):
+                loaded = config.load_config()
+
+            self.assertEqual(loaded.window_grid_cols, 5)
+            self.assertEqual(loaded.theme_window_radius, 22)
+            self.assertEqual(loaded.panel_thumbs_col, 9)
+
     def test_write_config_persists_expected_keys(self) -> None:
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             cfg_dir = root / "config"
-            assets_dir = root / "assets"
             cfg_dir.mkdir()
-            assets_dir.mkdir()
-            (assets_dir / "style.css").write_text("window {}\n", encoding="utf-8")
             cfg_path = cfg_dir / "config.json"
 
             with patch.object(config, "CONFIG_DIR", cfg_dir), patch.object(
                 config, "CONFIG_PATH", cfg_path
-            ), patch.object(config, "ASSETS_DIR", assets_dir):
+            ):
                 config.write_config(config.DEFAULT_CONFIG)
 
             payload = json.loads(cfg_path.read_text(encoding="utf-8"))
-            self.assertIn("panel_thumbs_col", payload)
+            self.assertIn("main", payload)
+            self.assertIn("theme", payload)
+            self.assertIn("panel", payload)
+            self.assertIn("panel_thumbs_col", payload["panel"])
+            self.assertIn("window_bg", payload["theme"])
+            self.assertIn("window_radius", payload["theme"])
             self.assertNotIn("card_margin", payload)
             self.assertNotIn("panel_fit", payload)
             self.assertNotIn("show_scrollbar", payload)
@@ -73,10 +100,7 @@ class ConfigTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             cfg_dir = root / "config"
-            assets_dir = root / "assets"
             cfg_dir.mkdir()
-            assets_dir.mkdir()
-            (assets_dir / "style.css").write_text("window {}\n", encoding="utf-8")
 
             cfg_path = cfg_dir / "config.json"
             cfg_path.write_text(
@@ -86,7 +110,7 @@ class ConfigTests(unittest.TestCase):
 
             with patch.object(config, "CONFIG_DIR", cfg_dir), patch.object(
                 config, "CONFIG_PATH", cfg_path
-            ), patch.object(config, "ASSETS_DIR", assets_dir):
+            ):
                 loaded = config.load_config()
 
             self.assertEqual(loaded.thumbnail_size, config.MAX_THUMBNAIL_SIZE)
@@ -95,10 +119,7 @@ class ConfigTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             cfg_dir = root / "config"
-            assets_dir = root / "assets"
             cfg_dir.mkdir()
-            assets_dir.mkdir()
-            (assets_dir / "style.css").write_text("window {}\n", encoding="utf-8")
 
             cfg_path = cfg_dir / "config.json"
             cfg_path.write_text(
@@ -116,7 +137,7 @@ class ConfigTests(unittest.TestCase):
 
             with patch.object(config, "CONFIG_DIR", cfg_dir), patch.object(
                 config, "CONFIG_PATH", cfg_path
-            ), patch.object(config, "ASSETS_DIR", assets_dir):
+            ):
                 loaded = config.load_config()
 
             self.assertEqual(loaded.batch_size, config.MAX_BATCH_SIZE)
@@ -128,10 +149,7 @@ class ConfigTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as td:
             root = Path(td)
             cfg_dir = root / "config"
-            assets_dir = root / "assets"
             cfg_dir.mkdir()
-            assets_dir.mkdir()
-            (assets_dir / "style.css").write_text("window {}\n", encoding="utf-8")
             cfg_path = cfg_dir / "config.json"
 
             bad_cfg = replace(
@@ -144,16 +162,49 @@ class ConfigTests(unittest.TestCase):
 
             with patch.object(config, "CONFIG_DIR", cfg_dir), patch.object(
                 config, "CONFIG_PATH", cfg_path
-            ), patch.object(config, "ASSETS_DIR", assets_dir):
+            ):
                 config.write_config(bad_cfg)
 
             payload = json.loads(cfg_path.read_text(encoding="utf-8"))
-            self.assertEqual(payload["batch_size"], 1)
-            self.assertEqual(payload["window_grid_cols"], 1)
-            self.assertEqual(payload["window_grid_rows"], config.MAX_WINDOW_GRID_ROWS)
+            self.assertEqual(payload["main"]["batch_size"], 1)
+            self.assertEqual(payload["main"]["window_grid_cols"], 1)
             self.assertEqual(
-                payload["panel_exclusive_zone"], config.MAX_PANEL_EXCLUSIVE_ZONE
+                payload["main"]["window_grid_rows"], config.MAX_WINDOW_GRID_ROWS
             )
+            self.assertEqual(
+                payload["panel"]["panel_exclusive_zone"],
+                config.MAX_PANEL_EXCLUSIVE_ZONE,
+            )
+
+    def test_theme_values_are_sanitized_and_clamped(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cfg_dir = root / "config"
+            cfg_dir.mkdir()
+
+            cfg_path = cfg_dir / "config.json"
+            cfg_path.write_text(
+                json.dumps(
+                    {
+                        "theme_window_bg": "red; color: blue;",
+                        "theme_card_bg": "",
+                        "theme_window_radius": 999,
+                        "theme_card_radius": -10,
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(config, "CONFIG_DIR", cfg_dir), patch.object(
+                config, "CONFIG_PATH", cfg_path
+            ):
+                loaded = config.load_config()
+
+            self.assertEqual(loaded.theme_window_bg, config.DEFAULT_CONFIG.theme_window_bg)
+            self.assertEqual(loaded.theme_card_bg, config.DEFAULT_CONFIG.theme_card_bg)
+            self.assertEqual(loaded.theme_window_radius, config.MAX_THEME_RADIUS)
+            self.assertEqual(loaded.theme_card_radius, 0)
 
 
 if __name__ == "__main__":
