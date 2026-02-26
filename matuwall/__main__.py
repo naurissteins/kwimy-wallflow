@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import sys
 
-from .cli import parse_cli_command, send_ipc_command
+from .cli import format_status, parse_cli_command, send_ipc_command
 
 
 def _configure_logging() -> None:
@@ -29,6 +29,9 @@ def main(argv: list[str] | None = None) -> int:
         return app_main()
 
     command = parse_cli_command(argv)
+    if command == "status":
+        print(format_status())
+        return 0
     if command and send_ipc_command(command):
         return 0
 

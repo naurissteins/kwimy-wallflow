@@ -6,7 +6,7 @@ NOTE: Matuwall does not manage matugen configuration, users are expected to have
 
 ## Features
 - Two UI layouts: centered window mode and edge panel mode (`left`, `right`, `top`, `bottom`)
-- Daemon-first workflow with IPC controls (`--show`, `--hide`, `--toggle`, `--quit`)
+- Daemon-first workflow with IPC controls (`--show`, `--hide`, `--toggle`, `--quit`, `--status`)
 - Responsive startup with lazy, batched wallpaper loading
 - Background thumbnail generation with persistent cache in `~/.cache/matuwall/`
 - One-action apply flow: activate a thumbnail to run `matugen image <wallpaper> -m <mode>`
@@ -39,6 +39,7 @@ matuwall --toggle
 matuwall --show
 matuwall --hide
 matuwall --quit
+matuwall --status
 ```
 
 Behavior:

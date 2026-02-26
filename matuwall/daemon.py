@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import os
 import selectors
 import signal
@@ -12,6 +13,8 @@ from pathlib import Path
 from .config import CONFIG_PATH, load_config
 from .paths import IPC_SOCKET_PATH, PID_FILE_PATH, RUNTIME_DIR, UI_PID_FILE_PATH
 
+LOGGER = logging.getLogger("matuwall.daemon")
+
 
 class MatuwallDaemon:
     def __init__(self) -> None:
@@ -19,15 +22,22 @@ class MatuwallDaemon:
         self._socket: socket.socket | None = None
         self._running = True
         self._keep_ui_alive = False
+        self._panel_mode_requested = False
         self._config_mtime_ns: int | None = None
         self._config_size: int | None = None
+        self._startup_error: str | None = None
         self._load_config(force=True)
 
     def run(self) -> int:
         self._setup_socket()
         if not self._socket:
+            if self._startup_error:
+                LOGGER.error(self._startup_error)
+            else:
+                LOGGER.error("Failed to start daemon")
             return 1
         self._write_pid_file()
+        LOGGER.info("Daemon started (ipc=%s)", IPC_SOCKET_PATH)
         try:
             while self._running:
                 self._load_config()
@@ -36,24 +46,34 @@ class MatuwallDaemon:
                     callback(key.fileobj)
         finally:
             self._cleanup()
+            LOGGER.info("Daemon stopped")
         return 0
 
     def _setup_socket(self) -> None:
         try:
             RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
-        except OSError:
+        except OSError as exc:
+            self._startup_error = (
+                f"Failed to create runtime directory {RUNTIME_DIR}: {exc}"
+            )
             return
         try:
             if IPC_SOCKET_PATH.exists():
                 IPC_SOCKET_PATH.unlink()
-        except OSError:
+        except OSError as exc:
+            self._startup_error = (
+                f"Failed to remove stale socket {IPC_SOCKET_PATH}: {exc}"
+            )
             pass
         try:
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             sock.bind(str(IPC_SOCKET_PATH))
             sock.listen(8)
             sock.setblocking(False)
-        except OSError:
+        except OSError as exc:
+            self._startup_error = (
+                f"Failed to bind IPC socket {IPC_SOCKET_PATH}: {exc}"
+            )
             return
         self._socket = sock
         self._selector.register(sock, selectors.EVENT_READ, self._accept)
@@ -96,7 +116,7 @@ class MatuwallDaemon:
             if self._keep_ui_alive:
                 self._signal_ui(signal.SIGUSR1)
             return
-        env = os.environ.copy()
+        env = self._prepare_ui_env()
         env["MATUWALL_UI"] = "1"
         log_path = RUNTIME_DIR / "ui.log"
         try:
@@ -121,6 +141,55 @@ class MatuwallDaemon:
                 stderr=subprocess.DEVNULL,
             )
         self._write_ui_pid(proc.pid)
+
+    def _prepare_ui_env(self) -> dict[str, str]:
+        env = os.environ.copy()
+        runtime_dir = env.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
+        env.setdefault("XDG_RUNTIME_DIR", runtime_dir)
+
+        runtime_path = Path(runtime_dir)
+        wayland_display = env.get("WAYLAND_DISPLAY")
+        if not wayland_display:
+            candidates = sorted(runtime_path.glob("wayland-*"))
+            if candidates:
+                wayland_display = candidates[0].name
+                env["WAYLAND_DISPLAY"] = wayland_display
+        if wayland_display:
+            env.setdefault("XDG_SESSION_TYPE", "wayland")
+            current_backend = env.get("GDK_BACKEND", "").strip()
+            if not current_backend:
+                env["GDK_BACKEND"] = "wayland"
+            elif "wayland" not in {
+                item.strip() for item in current_backend.split(",") if item.strip()
+            }:
+                env["GDK_BACKEND"] = f"wayland,{current_backend}"
+        else:
+            LOGGER.warning(
+                "WAYLAND_DISPLAY is not set; panel mode may run without layer-shell"
+            )
+
+        if not env.get("DBUS_SESSION_BUS_ADDRESS"):
+            bus_path = runtime_path / "bus"
+            if bus_path.exists():
+                env["DBUS_SESSION_BUS_ADDRESS"] = f"unix:path={bus_path}"
+
+        if self._panel_mode_requested:
+            preload_candidates = (
+                Path("/usr/lib/libgtk4-layer-shell.so"),
+                Path("/usr/lib64/libgtk4-layer-shell.so"),
+            )
+            for lib_path in preload_candidates:
+                if not lib_path.exists():
+                    continue
+                current_preload = env.get("LD_PRELOAD", "")
+                if str(lib_path) in current_preload:
+                    break
+                if current_preload:
+                    env["LD_PRELOAD"] = f"{current_preload}:{lib_path}"
+                else:
+                    env["LD_PRELOAD"] = str(lib_path)
+                break
+        return env
 
     def _hide_ui(self) -> None:
         pid = self._read_ui_pid()
@@ -260,7 +329,9 @@ class MatuwallDaemon:
             return
         self._config_mtime_ns = mtime_ns
         self._config_size = size
-        self._keep_ui_alive = bool(load_config().keep_ui_alive)
+        cfg = load_config()
+        self._keep_ui_alive = bool(cfg.keep_ui_alive)
+        self._panel_mode_requested = bool(cfg.panel_mode)
 
 
 def run_daemon() -> int:
