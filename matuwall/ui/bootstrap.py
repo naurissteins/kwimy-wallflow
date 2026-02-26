@@ -33,18 +33,3 @@ class AppBootstrapMixin:
         Gtk.StyleContext.add_provider_for_display(
             Gdk.Display.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
         )
-
-    def _apply_config_css(self) -> None:
-        if not self.config:
-            return
-        display = Gdk.Display.get_default()
-        if not display:
-            return
-        margin = max(0, int(self.config.card_margin))
-        css = f".matuwall-card {{ margin: {margin}px; }}\n"
-        provider = Gtk.CssProvider()
-        provider.load_from_data(css.encode("utf-8"))
-        Gtk.StyleContext.add_provider_for_display(
-            display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 2
-        )
-        self._config_css_provider = provider

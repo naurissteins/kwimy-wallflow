@@ -10,7 +10,6 @@ from .paths import ASSETS_DIR, CONFIG_DIR
 LOGGER = logging.getLogger("matuwall.config")
 MAX_THUMBNAIL_SIZE = 1000
 MAX_BATCH_SIZE = 128
-MAX_CARD_MARGIN = 128
 MAX_WINDOW_GRID_COLS = 12
 MAX_WINDOW_GRID_ROWS = 12
 MIN_PANEL_EXCLUSIVE_ZONE = -1
@@ -24,7 +23,6 @@ class AppConfig:
     thumbnail_size: int
     thumbnail_shape: str
     batch_size: int
-    card_margin: int
     window_decorations: bool
     window_grid_cols: int
     window_grid_rows: int
@@ -47,7 +45,6 @@ DEFAULT_CONFIG = AppConfig(
     thumbnail_size=256,
     thumbnail_shape="landscape",
     batch_size=16,
-    card_margin=16,
     window_decorations=False,
     window_grid_cols=3,
     window_grid_rows=3,
@@ -135,11 +132,6 @@ def load_config() -> AppConfig:
             1,
             MAX_BATCH_SIZE,
         ),
-        card_margin=_clamp(
-            data.get("card_margin", DEFAULT_CONFIG.card_margin),
-            0,
-            MAX_CARD_MARGIN,
-        ),
         window_decorations=bool(
             data.get("window_decorations", DEFAULT_CONFIG.window_decorations)
         ),
@@ -204,7 +196,6 @@ def write_config(config: AppConfig) -> None:
         ),
         "thumbnail_shape": config.thumbnail_shape,
         "batch_size": _clamp(config.batch_size, 1, MAX_BATCH_SIZE),
-        "card_margin": _clamp(config.card_margin, 0, MAX_CARD_MARGIN),
         "window_decorations": config.window_decorations,
         "window_grid_cols": _clamp(config.window_grid_cols, 1, MAX_WINDOW_GRID_COLS),
         "window_grid_rows": _clamp(config.window_grid_rows, 1, MAX_WINDOW_GRID_ROWS),

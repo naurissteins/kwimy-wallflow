@@ -64,6 +64,7 @@ class ConfigTests(unittest.TestCase):
 
             payload = json.loads(cfg_path.read_text(encoding="utf-8"))
             self.assertIn("panel_thumbs_col", payload)
+            self.assertNotIn("card_margin", payload)
             self.assertNotIn("panel_fit", payload)
             self.assertNotIn("show_scrollbar", payload)
             self.assertNotIn("backdrop_enabled", payload)
@@ -104,7 +105,6 @@ class ConfigTests(unittest.TestCase):
                 json.dumps(
                     {
                         "batch_size": 999999,
-                        "card_margin": -50,
                         "window_grid_cols": 99,
                         "window_grid_rows": 0,
                         "panel_exclusive_zone": -999,
@@ -120,7 +120,6 @@ class ConfigTests(unittest.TestCase):
                 loaded = config.load_config()
 
             self.assertEqual(loaded.batch_size, config.MAX_BATCH_SIZE)
-            self.assertEqual(loaded.card_margin, 0)
             self.assertEqual(loaded.window_grid_cols, config.MAX_WINDOW_GRID_COLS)
             self.assertEqual(loaded.window_grid_rows, 1)
             self.assertEqual(loaded.panel_exclusive_zone, config.MIN_PANEL_EXCLUSIVE_ZONE)
@@ -138,7 +137,6 @@ class ConfigTests(unittest.TestCase):
             bad_cfg = replace(
                 config.DEFAULT_CONFIG,
                 batch_size=0,
-                card_margin=999999,
                 window_grid_cols=0,
                 window_grid_rows=999,
                 panel_exclusive_zone=999999,
@@ -151,7 +149,6 @@ class ConfigTests(unittest.TestCase):
 
             payload = json.loads(cfg_path.read_text(encoding="utf-8"))
             self.assertEqual(payload["batch_size"], 1)
-            self.assertEqual(payload["card_margin"], config.MAX_CARD_MARGIN)
             self.assertEqual(payload["window_grid_cols"], 1)
             self.assertEqual(payload["window_grid_rows"], config.MAX_WINDOW_GRID_ROWS)
             self.assertEqual(

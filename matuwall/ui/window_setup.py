@@ -52,8 +52,6 @@ class WindowSetupMixin:
 
     def _load_and_apply_config(self) -> None:
         self.config = load_config()
-        self.CARD_MARGIN = max(0, int(self.config.card_margin))
-        self._apply_config_css()
         self._panel_mode = bool(self.config.panel_mode and LayerShell is not None)
         if self._panel_mode and not self._is_wayland():
             self._panel_mode = False
