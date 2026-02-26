@@ -5,13 +5,14 @@ A minimal GTK4 + libadwaita wallpaper picker for Wayland. Select a wallpaper and
 NOTE: Matuwall does not manage matugen configuration, users are expected to have their own matugen setup in place.
 
 ## Features
-- Two display modes:
-  - Centered window picker
-  - Edge panel picker via layer-shell (`left`, `right`, `top`, `bottom`)
-- Daemon + IPC controls for fast open/close (`--show`, `--hide`, `--toggle`, `--quit`)
-- Lazy, batched wallpaper loading for responsive startup
+- Two UI layouts: centered window mode and edge panel mode (`left`, `right`, `top`, `bottom`)
+- Daemon-first workflow with IPC controls (`--show`, `--hide`, `--toggle`, `--quit`)
+- Responsive startup with lazy, batched wallpaper loading
 - Background thumbnail generation with persistent cache in `~/.cache/matuwall/`
-- User theming via `~/.config/matuwall/style.css`
+- One-action apply flow: activate a thumbnail to run `matugen image <wallpaper> -m <mode>`
+- Keyboard navigation (`Enter` apply, `Esc` close), plus optional mouse interaction
+- Panel auto-fit behavior: oversized `panel_thumbs_col` values are capped to available monitor space
+- User theming through `~/.config/matuwall/style.css`
 
 > [!TIP]  
 > If `"keep_ui_alive": true`, changes to `config.json`, `~/.config/matuwall/style.css`, or your wallpaper folder won’t take effect until you restart the `matuwall` service `(systemctl --user restart matuwall.service)`
@@ -27,12 +28,12 @@ python -m matuwall
 ```
 
 ## Daemon Mode
-Keep the app in memory for instant open:
+Start daemon mode once:
 ```
 matuwall --daemon
 ```
 
-Toggle or control the window from another terminal:
+Control it from any terminal:
 ```
 matuwall --toggle
 matuwall --show
@@ -40,17 +41,21 @@ matuwall --hide
 matuwall --quit
 ```
 
-If the daemon is running, `--show`/`--hide`/`--toggle`/`--quit` talk to it directly and won’t spawn extra windows. The daemon runs without GTK and spawns a separate UI process on `--show` (so memory drops back after hide).
-The daemon auto-reloads `config.json` within ~0.5s when you change it. UI settings only apply on the next UI start unless `keep_ui_alive` is `true` (in that case, hide/show won’t restart the UI).
+Behavior:
+- `--show` / `--hide` / `--toggle` / `--quit` use IPC and do not create duplicate windows
+- The daemon itself runs without GTK and starts a UI process only when needed
+- If `keep_ui_alive` is `false`, the UI process exits on hide (lower idle memory)
+- `config.json` is watched and reloaded by the daemon in ~0.5s; UI-only changes apply on next UI start when `keep_ui_alive` is `true`
 
 ## Panel Mode (Layer Shell)
-Enable a panel-style window (left/right/top/bottom) using `gtk-layer-shell`:
+Use panel mode to anchor Matuwall to a Wayland screen edge:
 ```
 "panel_mode": true,
 "panel_edge": "left",
 "panel_thumbs_col": 3,
 "panel_margin_top": 30
 ```
+`panel_thumbs_col` is treated as a requested visible count and auto-capped to monitor space, so the panel always stays fully on-screen.
 
 ## Autostart (systemd --user)
 ```
@@ -119,17 +124,15 @@ If you want to refresh it, delete the file and restart the app and it will be re
 
 ## Notes
 - `matugen` must be available in `PATH`.
-- The app reads wallpapers from `wallpaper_dir` and supports: `jpg`, `jpeg`, `png`, `webp`, `bmp`, `gif`.
-- `thumbnail_size` is the width. Height depends on `thumbnail_shape`:
-  - `landscape` (default): 16:9
-  - `square`: 1:1
-  - Capped to `1000` to avoid oversized thumbnails.
+- Wallpapers are read from `wallpaper_dir` and support: `jpg`, `jpeg`, `png`, `webp`, `bmp`, `gif`.
+- `thumbnail_size` defines thumbnail width and is capped to `1000` to avoid oversized thumbnails.
+- `thumbnail_shape` controls aspect ratio: `landscape` (16:9, default) or `square` (1:1).
 - `batch_size` controls how many thumbnails are appended per UI idle cycle (smaller = smoother, larger = faster fill). Clamped to `1..128`.
 - `card_margin` controls the spacing around each wallpaper card (match this with your CSS if you override styles). Clamped to `0..128`.
 - `window_grid_cols` / `window_grid_rows` control the default window size based on thumbnail dimensions. Each is clamped to `1..12`.
 - `window_grid_max_width_pct` caps the window width as a percentage of the screen (default 80).
-- `mouse_enabled` toggles pointer interaction (click/hover/scroll).
-- `keep_ui_alive` keeps the UI process running between show/hide (faster open, higher memory).
+- `mouse_enabled` toggles pointer interaction (click, hover, scroll).
+- `keep_ui_alive` keeps the UI process running between show/hide (faster open, higher memory use).
 - `panel_mode` enables layer-shell mode (requires `gtk-layer-shell` with Gtk4 typelibs).
 - `panel_edge` can be `left`, `right`, `top`, `bottom`.
 - `panel_thumbs_col` is the number of thumbnails to display (width for top/bottom panels, height for left/right). If it's too large for your monitor/margins, Matuwall automatically caps visible thumbs to fit on screen.
