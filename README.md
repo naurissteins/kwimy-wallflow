@@ -17,33 +17,31 @@ NOTE: Matuwall does not manage and include [matugen](https://github.com/InioX/ma
 > [!TIP]  
 > If `"keep_ui_alive": true`, changes to `config.json`, `colors.json`, or your wallpaper folder won’t take effect until you restart the **matuwall** service `systemctl --user restart matuwall.service` or `matuwall --reload`
 
-## Install Dependencies
-```
-sudo pacman -S python python-gobject gtk4 libadwaita gtk-layer-shell
+## Installation
+### AUR (Arch Linux)
+```bash
+yay -S matuwall
 ```
 
-## Direct Install (Release Binary)
-Install latest release to `~/.local/bin/matuwall`:
+### Install From Source
+1. Install dependencies:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/naurissteins/Matuwall/main/install.sh -o install.sh
-bash install.sh
+sudo pacman -S --needed git python python-pip python-virtualenv python-gobject gtk4 libadwaita gtk-layer-shell
 ```
-
-Install a specific release:
+2. Clone and install:
 ```bash
-bash install.sh --version 0.1.1
+git clone https://github.com/naurissteins/Matuwall.git
+cd Matuwall
+python -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install .
+mkdir -p ~/.local/bin
+ln -sf "$PWD/.venv/bin/matuwall" ~/.local/bin/matuwall
 ```
-
-Install user systemd service file:
+3. Verify install:
 ```bash
-bash install.sh --systemd
-systemctl --user enable --now matuwall.service
-```
-
-Uninstall:
-```bash
-curl -fsSL https://raw.githubusercontent.com/naurissteins/Matuwall/main/uninstall.sh -o uninstall.sh
-bash uninstall.sh
+matuwall --status
 ```
 
 ## Daemon Mode
