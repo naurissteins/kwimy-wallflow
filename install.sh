@@ -6,6 +6,7 @@ APP="matuwall"
 VERSION="latest"
 PREFIX="${HOME}/.local"
 INSTALL_SYSTEMD=0
+AUTO_INSTALL_DEPS=1
 DOWNLOADED_FROM=""
 
 usage() {
@@ -18,6 +19,7 @@ Options:
   --version <tag>   Install a specific release tag (default: latest)
   --prefix <path>   Install prefix (default: ~/.local)
   --systemd         Install user service file at ~/.config/systemd/user/matuwall.service
+  --skip-deps       Skip dependency auto-check/auto-install
   -h, --help        Show this help
 EOF
 }
@@ -26,6 +28,150 @@ require_cmd() {
   if ! command -v "$1" >/dev/null 2>&1; then
     echo "Error: missing required command: $1" >&2
     exit 1
+  fi
+}
+
+as_root() {
+  if [[ "${EUID:-$(id -u)}" -eq 0 ]]; then
+    "$@"
+    return
+  fi
+  if command -v sudo >/dev/null 2>&1; then
+    sudo "$@"
+    return
+  fi
+  echo "Error: need root privileges to install missing packages (sudo not found)." >&2
+  return 1
+}
+
+detect_pkg_manager() {
+  if command -v pacman >/dev/null 2>&1; then
+    echo "pacman"
+    return
+  fi
+  if command -v apt-get >/dev/null 2>&1; then
+    echo "apt"
+    return
+  fi
+  if command -v dnf >/dev/null 2>&1; then
+    echo "dnf"
+    return
+  fi
+  if command -v zypper >/dev/null 2>&1; then
+    echo "zypper"
+    return
+  fi
+  echo "unknown"
+}
+
+pkg_is_installed() {
+  local mgr="$1"
+  local pkg="$2"
+  case "$mgr" in
+    pacman)
+      pacman -Q "$pkg" >/dev/null 2>&1
+      ;;
+    apt)
+      dpkg-query -W -f='${Status}' "$pkg" 2>/dev/null | grep -q "install ok installed"
+      ;;
+    dnf | zypper)
+      rpm -q "$pkg" >/dev/null 2>&1
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+install_packages() {
+  local mgr="$1"
+  shift
+  local pkgs=("$@")
+  [[ "${#pkgs[@]}" -gt 0 ]] || return 0
+
+  case "$mgr" in
+    pacman)
+      as_root pacman -Sy --needed --noconfirm "${pkgs[@]}"
+      ;;
+    apt)
+      as_root apt-get update
+      as_root apt-get install -y "${pkgs[@]}"
+      ;;
+    dnf)
+      as_root dnf install -y "${pkgs[@]}"
+      ;;
+    zypper)
+      as_root zypper --non-interactive install --no-recommends "${pkgs[@]}"
+      ;;
+    *)
+      echo "Error: unsupported package manager '$mgr'." >&2
+      return 1
+      ;;
+  esac
+}
+
+ensure_runtime_deps() {
+  local mgr required_pkgs optional_pkgs pkg
+  local -a required_missing=()
+  local -a optional_missing=()
+
+  if [[ "$AUTO_INSTALL_DEPS" -eq 0 ]]; then
+    return 0
+  fi
+
+  mgr="$(detect_pkg_manager)"
+  case "$mgr" in
+    pacman)
+      required_pkgs=(gtk4 libadwaita gtk4-layer-shell)
+      optional_pkgs=()
+      ;;
+    apt)
+      required_pkgs=(libgtk-4-1 libadwaita-1-0 gir1.2-gtk-4.0 gir1.2-adw-1)
+      optional_pkgs=(libgtk4-layer-shell0 gir1.2-gtk4layershell-1.0)
+      ;;
+    dnf)
+      required_pkgs=(gtk4 libadwaita)
+      optional_pkgs=(gtk4-layer-shell)
+      ;;
+    zypper)
+      required_pkgs=(gtk4 libadwaita)
+      optional_pkgs=(gtk4-layer-shell)
+      ;;
+    *)
+      echo "Warning: could not detect supported package manager; skipping dependency install."
+      return 0
+      ;;
+  esac
+
+  for pkg in "${required_pkgs[@]}"; do
+    if ! pkg_is_installed "$mgr" "$pkg"; then
+      required_missing+=("$pkg")
+    fi
+  done
+  for pkg in "${optional_pkgs[@]}"; do
+    if ! pkg_is_installed "$mgr" "$pkg"; then
+      optional_missing+=("$pkg")
+    fi
+  done
+
+  if [[ "${#required_missing[@]}" -eq 0 && "${#optional_missing[@]}" -eq 0 ]]; then
+    echo "Runtime dependencies already installed."
+    return 0
+  fi
+
+  if [[ "${#required_missing[@]}" -gt 0 ]]; then
+    echo "Installing required runtime packages: ${required_missing[*]}"
+    if ! install_packages "$mgr" "${required_missing[@]}"; then
+      echo "Error: failed to install required runtime packages." >&2
+      return 1
+    fi
+  fi
+
+  if [[ "${#optional_missing[@]}" -gt 0 ]]; then
+    echo "Installing optional panel packages: ${optional_missing[*]}"
+    if ! install_packages "$mgr" "${optional_missing[@]}"; then
+      echo "Warning: optional packages were not installed. Panel mode may not work."
+    fi
   fi
 }
 
@@ -176,6 +322,10 @@ while [[ $# -gt 0 ]]; do
       INSTALL_SYSTEMD=1
       shift
       ;;
+    --skip-deps)
+      AUTO_INSTALL_DEPS=0
+      shift
+      ;;
     -h | --help)
       usage
       exit 0
@@ -192,6 +342,8 @@ require_cmd curl
 require_cmd install
 require_cmd mktemp
 require_cmd sha256sum
+
+ensure_runtime_deps
 
 tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT
