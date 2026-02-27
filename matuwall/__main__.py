@@ -4,6 +4,7 @@ import logging
 import sys
 
 from .cli import format_status, parse_cli_command, send_ipc_command
+from .config import load_config
 
 
 def _configure_logging() -> None:
@@ -34,6 +35,12 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if command and send_ipc_command(command):
         return 0
+    if command in {"show", "toggle"} and load_config().panel_mode:
+        print(
+            "matuwall daemon is not running (panel_mode=true requires daemon/systemd)",
+            file=sys.stderr,
+        )
+        return 1
     if command in {"hide", "quit", "reload"}:
         print("matuwall daemon is not running", file=sys.stderr)
         return 1

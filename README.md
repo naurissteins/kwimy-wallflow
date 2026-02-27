@@ -45,6 +45,7 @@ Behavior:
 - `--show` / `--hide` / `--toggle` / `--quit` use IPC and do not create duplicate windows
 - `--reload` reloads daemon config and restarts UI if it is currently running
 - The daemon itself runs without GTK and starts a UI process only when needed
+- When `panel.panel_mode` is `true`, `--show` / `--toggle` require a running daemon/service
 - If `keep_ui_alive` is `false`, the UI process exits on hide (lower idle memory)
 - `config.json` is watched and reloaded by the daemon in ~0.5s; UI-only changes apply on next UI start when `keep_ui_alive` is `true`
 
