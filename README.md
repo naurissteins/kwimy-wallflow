@@ -32,7 +32,7 @@ sudo pacman -S --needed git python python-pip python-virtualenv python-gobject g
 ```bash
 git clone https://github.com/naurissteins/Matuwall.git
 cd Matuwall
-python -m venv .venv
+/usr/bin/python -m venv --system-site-packages .venv
 source .venv/bin/activate
 pip install --upgrade pip
 pip install .
