@@ -46,11 +46,6 @@ curl -fsSL https://raw.githubusercontent.com/naurissteins/Matuwall/main/uninstal
 bash uninstall.sh
 ```
 
-## Run (from repo)
-```
-python -m matuwall
-```
-
 ## Daemon Mode
 Start daemon mode once:
 ```

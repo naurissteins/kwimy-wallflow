@@ -52,6 +52,12 @@ else
   echo "Binary not found: $bin_path"
 fi
 
+runtime_dir="${PREFIX%/}/share/${APP}"
+if [[ -d "$runtime_dir" ]]; then
+  rm -rf "$runtime_dir"
+  echo "Removed runtime: $runtime_dir"
+fi
+
 service_path="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/matuwall.service"
 if [[ "$REMOVE_SYSTEMD" -eq 1 && -f "$service_path" ]]; then
   if command -v systemctl >/dev/null 2>&1; then

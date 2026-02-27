@@ -16,3 +16,5 @@ AUR.md
 build
 matuwall.egg-info
 Screenshot*
+matuwall.spec
+dist/

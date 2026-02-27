@@ -1,0 +1,48 @@
+name: Release Standalone Binary
+
+on:
+  push:
+    tags:
+      - "v*"
+      - "*.*.*"
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-upload:
+    runs-on: ubuntu-24.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            python3 \
+            python3-pip \
+            python3-venv \
+            python3-gi \
+            gir1.2-gtk-4.0 \
+            gir1.2-adw-1 \
+            libgtk-4-1 \
+            libadwaita-1-0
+
+      - name: Install build tooling
+        run: |
+          python3 -m pip install --upgrade pip
+          python3 -m pip install pyinstaller
+
+      - name: Build standalone binary
+        run: ./scripts/build-standalone.sh
+
+      - name: Upload release assets
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/matuwall
+            dist/checksums.txt
+            install.sh
+            uninstall.sh
