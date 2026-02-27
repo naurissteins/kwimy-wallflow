@@ -130,6 +130,13 @@ Default config:
 
 ## Hyprland
 ```
+### Matuwall daemon
+# Recommended (if you use UWSM):
+exec-once = uwsm app -- matuwall --daemon
+
+# If you are not using UWSM
+exec-once = matuwall --daemon
+
 ### Window Mode
 windowrule = float true, match:class com\.kwimy\.Matuwall
 windowrule = animation slide top, match:class com\.kwimy\.Matuwall
@@ -146,6 +153,13 @@ layerrule = match:namespace matuwall, ignore_alpha 0.5
 layerrule = match:namespace matuwall-backdrop, animation fade
 # layerrule = match:namespace matuwall-backdrop, blur on
 # layerrule = match:namespace matuwall-backdrop, ignore_alpha 0.2
+
+### Keybinds
+# Toggle
+bind = SUPER, W, exec, matuwall --toggle
+
+# Reload daemon
+bind = CTRL, W, exec, matuwall --reload
 ```
 
 ## Theme

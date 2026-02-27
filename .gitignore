@@ -12,6 +12,7 @@ env/
 .DS_Store
 *.log
 DEV.md
+AUR.md
 build
 matuwall.egg-info
 Screenshot*

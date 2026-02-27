@@ -30,6 +30,17 @@ gridview child {
     background: transparent;
 }
 
+gridview child:selected,
+gridview child:focus,
+gridview child:focus-visible,
+gridview child:selected:focus,
+gridview child:selected:focus-visible {
+    outline: none;
+    box-shadow: none;
+    border: none;
+    background: transparent;
+}
+
 gridview child:selected .matuwall-card {
     border-color: rgba(255, 255, 255, 0.35);
     background: rgba(255, 255, 255, 0.12);
