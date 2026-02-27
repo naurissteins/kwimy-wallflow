@@ -22,6 +22,30 @@ NOTE: Matuwall does not manage and include [matugen](https://github.com/InioX/ma
 sudo pacman -S python python-gobject gtk4 libadwaita gtk-layer-shell
 ```
 
+## Direct Install (Release Binary)
+Install latest release to `~/.local/bin/matuwall`:
+```bash
+curl -fsSL https://raw.githubusercontent.com/naurissteins/Matuwall/main/install.sh -o install.sh
+bash install.sh
+```
+
+Install a specific release:
+```bash
+bash install.sh --version 0.1.1
+```
+
+Install user systemd service file:
+```bash
+bash install.sh --systemd
+systemctl --user enable --now matuwall.service
+```
+
+Uninstall:
+```bash
+curl -fsSL https://raw.githubusercontent.com/naurissteins/Matuwall/main/uninstall.sh -o uninstall.sh
+bash uninstall.sh
+```
+
 ## Run (from repo)
 ```
 python -m matuwall
@@ -52,7 +76,7 @@ Behavior:
 - `config.json` is watched and reloaded by the daemon in ~0.5s; UI-only changes apply on next UI start when `keep_ui_alive` is `true`
 
 ## Panel Mode (Layer Shell)
-Use panel mode to anchor Matuwall to a Wayland screen edge:
+Use panel mode to anchor Matuwall to screen edge:
 ```
 "panel": {
   "panel_mode": true,
@@ -62,24 +86,6 @@ Use panel mode to anchor Matuwall to a Wayland screen edge:
 }
 ```
 `panel_thumbs_col` is treated as a requested visible count and auto-capped to monitor space, so the panel always stays fully on-screen.
-
-## Autostart (systemd --user)
-```
-mkdir -p ~/.config/systemd/user
-cp systemd/matuwall.service ~/.config/systemd/user/
-systemctl --user daemon-reload
-systemctl --user enable --now matuwall.service
-
-systemctl --user daemon-reload
-systemctl --user restart matuwall.service
-```
-
-If you installed via a local venv, update `ExecStart` in the service file to point at your venv binary.
-If you are on Wayland, the service sets `GDK_BACKEND=wayland` to ensure layer-shell works.
-If your compositor uses a different `WAYLAND_DISPLAY`, update it in `systemd/matuwall.service`.
-If you see “Failed to initialize layer surface”, set `LD_PRELOAD=/usr/lib/libgtk4-layer-shell.so`.
-If `--toggle` opens a new normal window, make sure the service has `DBUS_SESSION_BUS_ADDRESS=unix:path=%t/bus`.
-You can check the service environment with `systemctl --user show matuwall.service -p Environment`.
 
 ## Configuration
 Config file path:
@@ -166,8 +172,7 @@ bind = CTRL, W, exec, matuwall --reload
 
 ## Theme
 Theme customization is controlled from `~/.config/matuwall/config.json` under `theme`.
-Optional: if `~/.config/matuwall/colors.json` exists, its color keys override `theme` colors.
-Only color and radius tokens are configurable. Layout values (padding, margins, sizes) are fixed to keep scrolling and panel sizing stable.
+If `~/.config/matuwall/colors.json` exists, its color keys override `theme` colors (this is optional).
 
 ## Style Matuwall with Matugen
 1. Create a new file `matuwall-colors.json` in `~/.config/matugen/templates`
