@@ -58,6 +58,11 @@ if head -c 4 "dist/${APP_NAME}" | grep -q '^#!'; then
   exit 1
 fi
 
+if ! "dist/${APP_NAME}" --status >/dev/null 2>&1; then
+  echo "Error: standalone smoke test failed (dist/${APP_NAME} --status)." >&2
+  exit 1
+fi
+
 sha256sum "dist/${APP_NAME}" > "dist/checksums.txt"
 
 echo "Built standalone binary:"

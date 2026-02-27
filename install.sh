@@ -260,6 +260,12 @@ verify_checksum_if_available() {
   echo "Checksum verified (${APP})."
 }
 
+binary_smoke_test() {
+  local candidate="$1"
+  chmod 0755 "$candidate" >/dev/null 2>&1 || true
+  "$candidate" --status >/dev/null 2>&1
+}
+
 install_from_source_venv() {
   local venv_dir="${PREFIX%/}/share/${APP}/venv"
   local launcher_path="${PREFIX%/}/bin/${APP}"
@@ -353,14 +359,30 @@ bin_path="${bin_dir}/${APP}"
 download_binary "${tmpdir}/${APP}"
 verify_checksum_if_available "${tmpdir}/${APP}"
 
-first_line="$(head -n 1 "${tmpdir}/${APP}" || true)"
-if [[ "$first_line" =~ ^#!.*python ]]; then
-  echo "Release asset is a Python launcher script; using isolated runtime install instead."
-  install_from_source_venv
+if head -c 2 "${tmpdir}/${APP}" | grep -q '^#!'; then
+  shebang_line="$(LC_ALL=C head -n 1 "${tmpdir}/${APP}" || true)"
+  if [[ "$shebang_line" == *python* ]]; then
+    echo "Release asset is a Python launcher script; using isolated runtime install instead."
+    install_from_source_venv
+  else
+    if binary_smoke_test "${tmpdir}/${APP}"; then
+      mkdir -p "$bin_dir"
+      install -m 0755 "${tmpdir}/${APP}" "$bin_path"
+      echo "Installed ${APP} to ${bin_path}"
+    else
+      echo "Downloaded launcher failed self-check; using isolated runtime install instead."
+      install_from_source_venv
+    fi
+  fi
 else
-  mkdir -p "$bin_dir"
-  install -m 0755 "${tmpdir}/${APP}" "$bin_path"
-  echo "Installed ${APP} to ${bin_path}"
+  if binary_smoke_test "${tmpdir}/${APP}"; then
+    mkdir -p "$bin_dir"
+    install -m 0755 "${tmpdir}/${APP}" "$bin_path"
+    echo "Installed ${APP} to ${bin_path}"
+  else
+    echo "Downloaded binary failed self-check; using isolated runtime install instead."
+    install_from_source_venv
+  fi
 fi
 
 if [[ "$INSTALL_SYSTEMD" -eq 1 ]]; then

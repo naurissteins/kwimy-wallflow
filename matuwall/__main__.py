@@ -3,8 +3,28 @@ from __future__ import annotations
 import logging
 import sys
 
-from .cli import format_status, parse_cli_command, send_ipc_command
-from .config import load_config
+try:
+    from .cli import format_status, parse_cli_command, send_ipc_command
+    from .config import load_config
+except ImportError:
+    from matuwall.cli import format_status, parse_cli_command, send_ipc_command
+    from matuwall.config import load_config
+
+
+def _import_daemon_runner():
+    try:
+        from .daemon import run_daemon
+    except ImportError:
+        from matuwall.daemon import run_daemon
+    return run_daemon
+
+
+def _import_app_main():
+    try:
+        from .app import main as app_main
+    except ImportError:
+        from matuwall.app import main as app_main
+    return app_main
 
 
 def _configure_logging() -> None:
@@ -20,14 +40,10 @@ def main(argv: list[str] | None = None) -> int:
         argv = sys.argv[1:]
 
     if "--daemon" in argv:
-        from .daemon import run_daemon
-
-        return run_daemon()
+        return _import_daemon_runner()()
 
     if "--ui" in argv:
-        from .app import main as app_main
-
-        return app_main()
+        return _import_app_main()()
 
     command = parse_cli_command(argv)
     if command == "status":
@@ -45,9 +61,7 @@ def main(argv: list[str] | None = None) -> int:
         print("matuwall daemon is not running", file=sys.stderr)
         return 1
 
-    from .app import main as app_main
-
-    return app_main()
+    return _import_app_main()()
 
 
 if __name__ == "__main__":
