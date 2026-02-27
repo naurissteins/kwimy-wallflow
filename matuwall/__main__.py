@@ -34,7 +34,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
     if command and send_ipc_command(command):
         return 0
-    if command == "reload":
+    if command in {"hide", "quit", "reload"}:
         print("matuwall daemon is not running", file=sys.stderr)
         return 1
 

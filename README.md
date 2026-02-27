@@ -10,10 +10,10 @@ NOTE: Matuwall does not manage and include [matugen](https://github.com/InioX/ma
 - Background thumbnail generation with persistent cache in `~/.cache/matuwall/`
 - One-action apply flow: activate a thumbnail to run `matugen image <wallpaper> -m <mode>`
 - Keyboard navigation (`Enter` apply, `Esc` close, `Arrow keys` to navigate between thumbnails), plus optional mouse interaction
-- Styling in `config.json` (colors + corner radius), with optional `colors.json` color override, useful for customizing the appearance with your own colorscheme using matugen
+- Styling in `config.json` (colors + corner radius), with optional `colors.json` color override, useful for customizing appearance with your own colorscheme using matugen
 
 > [!TIP]  
-> If `"keep_ui_alive": true`, changes to `config.json`, `colors.json`, or your wallpaper folder won’t take effect until you restart the `matuwall` service `systemctl --user restart matuwall.service` or `matuwall --reload`
+> If `"keep_ui_alive": true`, changes to `config.json`, `colors.json`, or your wallpaper folder won’t take effect until you restart the **matuwall** service `systemctl --user restart matuwall.service` or `matuwall --reload`
 
 ## Install Dependencies
 ```
@@ -31,7 +31,7 @@ Start daemon mode once:
 matuwall --daemon
 ```
 
-Control it from any terminal:
+Manage daemon:
 ```
 matuwall --toggle
 matuwall --show
