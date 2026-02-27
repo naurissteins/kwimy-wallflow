@@ -65,7 +65,19 @@ gridview child:hover .matuwall-card {
     border: 1px solid rgba(255, 255, 255, 0.05);
     padding: 8px;
     margin: 16px;
-    transition: all 200ms ease-out;
+    transform-origin: center center;
+    transition:
+        transform 180ms ease-out,
+        background-color 200ms ease-out,
+        border-color 200ms ease-out;
+}
+
+gridview child:selected .matuwall-card {
+    transform: scale(1.09);
+}
+
+gridview child:hover .matuwall-card {
+    transform: scale(1.09);
 }
 
 .matuwall-thumb-spinner {
