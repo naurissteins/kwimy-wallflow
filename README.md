@@ -2,6 +2,8 @@
 
 A minimal GTK4 + libadwaita wallpaper picker for Wayland compositor. Matuwall triggers [matugen](https://github.com/InioX/matugen) to generate and apply colors from the chosen image.
 
+https://github.com/user-attachments/assets/3401c5f1-6463-41c0-b637-d91ffb7f7b01
+
 NOTE: Matuwall does not manage and include [matugen](https://github.com/InioX/matugen) configuration, you have to use your own matugen setup.  
 
 ## 🔥 Features
