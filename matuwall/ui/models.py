@@ -1,6 +1,9 @@
 from __future__ import annotations
+
 from pathlib import Path
+
 from gi.repository import GObject
+
 
 class WallpaperItem(GObject.Object):
     path_str = GObject.Property(type=str)

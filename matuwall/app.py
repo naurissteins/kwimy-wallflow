@@ -20,8 +20,8 @@ from .ui.navigation import NavigationMixin
 from .ui.panel import LAYER_SHELL_ERROR, PanelMixin
 from .ui.runtime import RuntimeMixin
 from .ui.thumbnails import ThumbnailMixin
-from .ui.window_state import WindowStateMixin
 from .ui.window_setup import WindowSetupMixin
+from .ui.window_state import WindowStateMixin
 
 
 class MatuwallApp(Adw.Application, NavigationMixin, AppBootstrapMixin, RuntimeMixin, WindowStateMixin, WindowSetupMixin, PanelMixin, ContentMixin, ThumbnailMixin):

@@ -17,7 +17,7 @@ except (ImportError, ValueError) as exc:
     LayerShell = None
     LAYER_SHELL_ERROR = str(exc)
 
-from gi.repository import Gdk, Gtk, Adw
+from gi.repository import Adw, Gdk, Gtk
 
 
 class PanelMixin:
@@ -105,9 +105,7 @@ class PanelMixin:
         LayerShell.set_margin(window, LayerShell.Edge.RIGHT, margin_right)
 
         monitor_width, monitor_height = self._get_primary_monitor_size()
-        self._log(
-            "layer_shell monitor size: %sx%s" % (monitor_width, monitor_height)
-        )
+        self._log(f"layer_shell monitor size: {monitor_width}x{monitor_height}")
         panel_thumbs_col = self._effective_panel_thumbs_col(
             panel_edge,
             panel_size,

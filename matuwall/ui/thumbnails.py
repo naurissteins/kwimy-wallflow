@@ -17,7 +17,6 @@ from gi.repository import Gdk, GdkPixbuf, Gio, GLib, Gtk
 
 from ..paths import CACHE_DIR
 
-
 LOGGER = logging.getLogger("matuwall.thumbnails")
 
 

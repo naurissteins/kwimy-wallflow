@@ -120,9 +120,9 @@ class MatuwallDaemon:
             return
         env = self._prepare_ui_env()
         env["MATUWALL_UI"] = "1"
-        log_path = RUNTIME_DIR / "ui.log"
+        log_path: Path | None = RUNTIME_DIR / "ui.log"
         try:
-            log_path.parent.mkdir(parents=True, exist_ok=True)
+            RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
         except OSError:
             log_path = None
         if log_path:

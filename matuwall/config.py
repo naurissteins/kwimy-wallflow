@@ -5,6 +5,7 @@ import logging
 import re
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any, cast
 
 from .paths import CONFIG_DIR
 
@@ -156,19 +157,19 @@ def _clamp(value: int, low: int, high: int) -> int:
     return max(low, min(high, int(value)))
 
 
-def _as_dict(value: object) -> dict[str, object]:
+def _as_dict(value: object) -> dict[str, Any]:
     if isinstance(value, dict):
-        return value
+        return cast(dict[str, Any], value)
     return {}
 
 
 def _pick(
-    section: dict[str, object],
-    root: dict[str, object],
+    section: dict[str, Any],
+    root: dict[str, Any],
     key: str,
-    default: object,
+    default: Any,
     legacy_key: str | None = None,
-) -> object:
+) -> Any:
     if key in section:
         return section.get(key)
     if key in root:
@@ -191,7 +192,7 @@ def _sanitize_css_color(value: object, default: str) -> str:
     return color
 
 
-def _load_optional_json(path: Path) -> dict[str, object]:
+def _load_optional_json(path: Path) -> dict[str, Any]:
     try:
         raw = path.read_text(encoding="utf-8")
         parsed = json.loads(raw)
@@ -272,7 +273,7 @@ def load_config() -> AppConfig:
     colors_path_candidates = [CONFIG_PATH.parent / "colors.json"]
     if CONFIG_DIR != CONFIG_PATH.parent:
         colors_path_candidates.append(CONFIG_DIR / "colors.json")
-    colors_root: dict[str, object] = {}
+    colors_root: dict[str, Any] = {}
     for candidate in colors_path_candidates:
         loaded = _load_optional_json(candidate)
         if loaded:
@@ -280,7 +281,7 @@ def load_config() -> AppConfig:
             break
     colors_theme = _as_dict(colors_root.get("theme"))
 
-    def _pick_theme_color(key: str, default: str, legacy_key: str) -> object:
+    def _pick_theme_color(key: str, default: str, legacy_key: str) -> Any:
         base_value = _pick(theme, root, key, default, legacy_key=legacy_key)
         if key in colors_theme:
             return colors_theme.get(key)

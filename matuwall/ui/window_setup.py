@@ -170,27 +170,14 @@ class WindowSetupMixin:
         backend = self._display_backend_name()
         if self._panel_mode:
             self._log(
-                "panel_mode=%s edge=%s size=%s thumbs=%s margins=%s backend=%s target=%sx%s"
-                % (
-                    self._panel_mode,
-                    panel_edge,
-                    panel_size,
-                    panel_thumbs_col,
-                    panel_margins,
-                    backend,
-                    target_width,
-                    target_height,
-                )
+                f"panel_mode={self._panel_mode} edge={panel_edge} size={panel_size} "
+                f"thumbs={panel_thumbs_col} margins={panel_margins} backend={backend} "
+                f"target={target_width}x{target_height}"
             )
         else:
             self._log(
-                "panel_mode=%s edge=%s size=%s backend=%s"
-                % (
-                    self._panel_mode,
-                    panel_edge,
-                    panel_size,
-                    backend,
-                )
+                f"panel_mode={self._panel_mode} edge={panel_edge} size={panel_size} "
+                f"backend={backend}"
             )
 
         self._build_content()
