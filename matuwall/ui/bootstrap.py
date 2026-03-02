@@ -41,6 +41,7 @@ class AppBootstrapMixin:
         display = Gdk.Display.get_default()
         if not display:
             return
+        card_scale = self._card_transform_scale(self.config.thumbnail_size)
         backdrop_bg = self.config.theme_backdrop_bg
         if css_color_is_fully_transparent(backdrop_bg):
             # Fully transparent backdrop can lose click target behavior on
@@ -68,11 +69,13 @@ window {{
 gridview child:selected .matuwall-card {{
     border-color: {self.config.theme_card_selected_border};
     background: {self.config.theme_card_selected_bg};
+    transform: scale({card_scale});
 }}
 
 gridview child:hover .matuwall-card {{
     border-color: {self.config.theme_card_hover_border};
     background: {self.config.theme_card_hover_bg};
+    transform: scale({card_scale});
 }}
 
 .matuwall-card {{
@@ -94,3 +97,14 @@ gridview child:hover .matuwall-card {{
             display, provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION + 2
         )
         self._theme_css_provider = provider
+
+    @staticmethod
+    def _card_transform_scale(thumbnail_size: int) -> str:
+        size = max(1, int(thumbnail_size))
+        if size <= 300:
+            return "1.09"
+        if size <= 500:
+            return "1.05"
+        if size <= 800:
+            return "1.03"
+        return "1.02"

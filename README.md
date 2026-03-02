@@ -130,7 +130,7 @@ Default config:
 ```
 
 ## Hyprland
-```
+```sh
 ### Matuwall daemon
 # Recommended (if you use UWSM):
 exec-once = uwsm app -- matuwall --daemon
