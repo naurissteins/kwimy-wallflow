@@ -97,7 +97,7 @@ Default config:
     "window_grid_cols": 3,
     "window_grid_rows": 3,
     "window_grid_max_width_pct": 80,
-    "mouse_enabled": true,
+    "mouse_enabled": false,
     "keep_ui_alive": false
   },
   "theme": {
@@ -119,7 +119,7 @@ Default config:
   "panel": {
     "panel_mode": false,
     "panel_edge": "left",
-    "panel_thumbs_col": 3,
+    "panel_thumbs_col": 5,
     "panel_exclusive_zone": -1,
     "panel_margin_top": 0,
     "panel_margin_bottom": 0,
@@ -165,7 +165,7 @@ bind = CTRL, W, exec, matuwall --reload
 
 ## Theme
 Theme customization is controlled from `~/.config/matuwall/config.json` under `theme`.
-If `~/.config/matuwall/colors.json` exists, its color keys override `theme` colors (this is optional).
+If `~/.config/matuwall/colors.json` exists, its color keys override `theme` colors (this is optional)
 
 ## Style Matuwall with Matugen
 1. Create a new file `matuwall-colors.json` in `~/.config/matugen/templates`
@@ -193,22 +193,20 @@ output_path = '~/.config/matuwall/colors.json'
 ```
 
 ## Notes
-- `matugen` must be available in `PATH`.
-- Wallpapers are read from `wallpaper_dir` and support: `jpg`, `jpeg`, `png`, `webp`, `bmp`, `gif`.
-- `thumbnail_size` defines thumbnail width and is capped to `1000` to avoid oversized thumbnails.
-- `thumbnail_shape` controls aspect ratio: `landscape` (16:9, default) or `square` (1:1).
-- `batch_size` controls how many thumbnails are appended per UI idle cycle (smaller = smoother, larger = faster fill). Clamped to `1..128`.
-- `window_grid_cols` / `window_grid_rows` control the default window size based on thumbnail dimensions. Each is clamped to `1..12`.
-- `window_grid_max_width_pct` caps the window width as a percentage of the screen (default 80).
-- `mouse_enabled` toggles pointer interaction (click, hover, scroll).
+- Wallpapers are read from `wallpaper_dir` and support: `jpg`, `jpeg`, `png`, `webp`, `bmp`, `gif`
+- `thumbnail_size` defines thumbnail width and is capped to `1000` (just to avoid oversized thumbnails
+- `thumbnail_shape` controls aspect ratio: `landscape` (16:9, default) or `square` (1:1)
+- `batch_size` controls how many thumbnails are appended per UI idle cycle (smaller = smoother, larger = faster fill). Clamped to `1..128`
+- `window_grid_cols` / `window_grid_rows` control the default window size based on thumbnail dimensions. Each is clamped to `1..12`
+- `window_grid_max_width_pct` caps the window width as a percentage of the screen (default 80)
+- `mouse_enabled` toggles pointer interaction (click, hover, scroll). I recommend to keep this false
 - `keep_ui_alive` keeps the UI process running between show/hide (faster open, higher memory use).
-- `theme.window_radius`, `theme.card_radius`, and `theme.thumb_radius` are clamped to `0..64`.
-- Invalid color strings in `theme` are ignored and fallback to defaults.
-- `colors.json` can override theme colors (`window_bg`, `text_color`, `header_bg_start`, `header_bg_end`, `backdrop_bg`, `card_bg`, `card_border`, `card_hover_bg`, `card_hover_border`, `card_selected_bg`, `card_selected_border`).
-- If `theme.backdrop_bg` is fully transparent, Matuwall applies a tiny internal alpha so outside-click close still works in panel mode.
+- `theme.window_radius`, `theme.card_radius`, and `theme.thumb_radius` are clamped to `0..64`
+- Invalid color strings in `theme` are ignored and fallback to defaults
+- `colors.json` can override theme colors (`window_bg`, `text_color`, `header_bg_start`, `header_bg_end`, `backdrop_bg`, `card_bg`, `card_border`, `card_hover_bg`, `card_hover_border`, `card_selected_bg`, `card_selected_border`)
 - `panel_mode` enables layer-shell mode (requires `gtk-layer-shell` with Gtk4 typelibs).
 - `panel_edge` can be `left`, `right`, `top`, `bottom`.
-- `panel_thumbs_col` is the number of thumbnails to display (width for top/bottom panels, height for left/right). If it's too large for your monitor/margins, Matuwall automatically caps visible thumbs to fit on screen.
-- `panel_exclusive_zone` controls reserved space (`-1` = none). Clamped to `-1..4096`.
-- `panel_margin_top` / `panel_margin_bottom` add margins in pixels (useful to sit under a top bar).
-- `panel_margin_left` / `panel_margin_right` add margins for top/bottom panels.
+- `panel_thumbs_col` is the number of thumbnails to display (width for top/bottom panels, height for left/right). If it's too large for your monitor/margins, it automatically caps visible thumbs to fit on screen
+- `panel_exclusive_zone` controls reserved space (`-1` = none). Clamped to `-1..4096`
+- `panel_margin_top` / `panel_margin_bottom` add margins in pixels (useful to sit under a top bar)
+- `panel_margin_left` / `panel_margin_right` add margins for top/bottom panels
