@@ -2,7 +2,7 @@
 
 A minimal GTK4 + libadwaita wallpaper picker for Wayland compositor. Matuwall can trigger [matugen](https://github.com/InioX/matugen) to generate/apply colors from the chosen image, or run wallpaper-only mode via [awww](https://codeberg.org/LGFae/awww).
 
-https://github.com/user-attachments/assets/3401c5f1-6463-41c0-b637-d91ffb7f7b01
+https://github.com/user-attachments/assets/5b62921e-d2a9-4f68-98fb-ad5b589e7695
 
 - Matuwall does not manage or include [matugen](https://github.com/InioX/matugen) configuration, so you need your own matugen setup when using matugen mode.  
 - If you prefer wallpaper-only mode without matugen, you can use `wall_mode_only` and `wall_awww_flags` to customize `awww` behavior. Make sure [awww](https://codeberg.org/LGFae/awww) is installed and running before use.
@@ -224,8 +224,8 @@ If `~/.config/matuwall/colors.json` exists, its color keys override `theme` colo
   "card_hover_border": "{{colors.primary.default.rgba | set_alpha: 0.2}}",
   "card_selected_bg": "{{colors.primary.default.rgba | set_alpha: 0.12}}",
   "card_selected_border": "{{colors.primary.default.rgba | set_alpha: 0.35}}",
-  "applied_overlay_bg": "{{colors.background.default.rgba | set_alpha: 0.45}}",
-  "applied_text": "{{colors.primary.default.hex}}"
+  "applied_text": "{{colors.primary.default.hex}}",
+  "applied_overlay_bg": "{{colors.background.dark.rgba | set_alpha: 0.90}}"
 }
 ```
 3. Then add the following to your matugen config file `~/.config/matugen/config.toml`:
