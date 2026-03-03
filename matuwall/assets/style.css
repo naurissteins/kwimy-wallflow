@@ -85,6 +85,24 @@ gridview child:hover .matuwall-card {
     min-height: 24px;
 }
 
+.matuwall-applied-overlay {
+    background: rgba(0, 0, 0, 0.58);
+    border-radius: 10px;
+    opacity: 0;
+    transition: opacity 180ms ease-out;
+}
+
+.matuwall-applied-overlay-visible {
+    opacity: 1;
+}
+
+.matuwall-applied-text {
+    color: #ffffff;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+    text-transform: uppercase;
+}
+
 .matuwall-thumb {
     border-radius: 10px;
 }

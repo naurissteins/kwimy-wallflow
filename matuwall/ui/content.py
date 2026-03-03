@@ -35,6 +35,7 @@ class ContentMixin:
         self._needs_reload = False
         if not self.config:
             return
+        self._reset_applied_badges()
         self._init_thumbnail_loader()
         if self._list_store:
             self._list_store.remove_all()
@@ -79,6 +80,7 @@ class ContentMixin:
     def _build_content(self) -> None:
         if not self._window or not self.config:
             return
+        self._reset_applied_badges()
         toolbar_view = Adw.ToolbarView()
         if not self._panel_mode and self.config.window_decorations:
             header = Adw.HeaderBar()
@@ -285,7 +287,8 @@ class ContentMixin:
                 ],
                 env=env,
             )
-            self._show_toast(f"Applied {path.name}")
+            if not self._show_applied_overlay(path):
+                self._show_toast("Applied")
         except FileNotFoundError:
             self._show_toast("matugen not found in PATH")
 
@@ -293,6 +296,63 @@ class ContentMixin:
         if not self._toast_overlay:
             return
         self._toast_overlay.add_toast(Adw.Toast.new(message))
+
+    def _reset_applied_badges(self) -> None:
+        source_ids = getattr(self, "_applied_badge_timeout_ids", {})
+        for source_id in source_ids.values():
+            try:
+                GLib.source_remove(source_id)
+            except Exception:
+                pass
+        self._applied_badges: dict[str, list[Gtk.Widget]] = {}
+        self._applied_badge_timeout_ids: dict[int, int] = {}
+
+    def _register_applied_badge(self, path: Path, badge: Gtk.Widget) -> None:
+        if not hasattr(self, "_applied_badges"):
+            self._applied_badges = {}
+        key = str(path)
+        badges = self._applied_badges.setdefault(key, [])
+        badges.append(badge)
+
+    def _show_applied_overlay(self, path: Path) -> bool:
+        badges_by_path: dict[str, list[Gtk.Widget]] = getattr(self, "_applied_badges", {})
+        timeout_ids: dict[int, int] = getattr(self, "_applied_badge_timeout_ids", {})
+        key = str(path)
+        badges = badges_by_path.get(key, [])
+        if not badges:
+            return False
+
+        active_badges: list[Gtk.Widget] = []
+        for badge in badges:
+            if badge.get_parent() is None:
+                continue
+            badge.set_visible(True)
+            badge.add_css_class("matuwall-applied-overlay-visible")
+
+            badge_id = id(badge)
+            previous_source_id = timeout_ids.pop(badge_id, None)
+            if previous_source_id is not None:
+                try:
+                    GLib.source_remove(previous_source_id)
+                except Exception:
+                    pass
+
+            source_id = GLib.timeout_add(900, self._hide_applied_overlay, badge)
+            timeout_ids[badge_id] = source_id
+            active_badges.append(badge)
+
+        if not active_badges:
+            return False
+
+        badges_by_path[key] = active_badges
+        return True
+
+    def _hide_applied_overlay(self, badge: Gtk.Widget) -> bool:
+        badge.remove_css_class("matuwall-applied-overlay-visible")
+        badge.set_visible(False)
+        timeout_ids: dict[int, int] = getattr(self, "_applied_badge_timeout_ids", {})
+        timeout_ids.pop(id(badge), None)
+        return False
 
     def _hide_scrollbars(self, scroller: Gtk.ScrolledWindow) -> None:
         scroller.add_css_class("matuwall-hide-scrollbar")

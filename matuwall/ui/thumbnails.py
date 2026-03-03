@@ -55,6 +55,26 @@ class ThumbnailMixin:
         spinner.set_visible(False)
         thumb_overlay.add_overlay(spinner)
 
+        applied_overlay = Gtk.Box()
+        applied_overlay.add_css_class("matuwall-applied-overlay")
+        applied_overlay.set_halign(Gtk.Align.FILL)
+        applied_overlay.set_valign(Gtk.Align.FILL)
+        applied_overlay.set_hexpand(True)
+        applied_overlay.set_vexpand(True)
+        applied_overlay.set_can_target(False)
+        applied_overlay.set_visible(False)
+
+        applied_label = Gtk.Label(label="Applied")
+        applied_label.add_css_class("matuwall-applied-text")
+        applied_label.set_halign(Gtk.Align.CENTER)
+        applied_label.set_valign(Gtk.Align.CENTER)
+        applied_label.set_hexpand(True)
+        applied_label.set_vexpand(True)
+        applied_label.set_xalign(0.5)
+        applied_label.set_yalign(0.5)
+        applied_overlay.append(applied_label)
+        thumb_overlay.add_overlay(applied_overlay)
+
         box.append(thumb_overlay)
         # Filenames are intentionally hidden.
 
@@ -73,6 +93,10 @@ class ThumbnailMixin:
             spinner.set_visible(True)
             spinner.start()
             self._queue_thumbnail_load(path, picture, spinner)
+
+        register_badge = getattr(self, "_register_applied_badge", None)
+        if callable(register_badge):
+            register_badge(path, applied_overlay)
 
         return box
 
