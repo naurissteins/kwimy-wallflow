@@ -32,6 +32,8 @@ class AppConfig:
     window_grid_max_width_pct: int
     mouse_enabled: bool
     keep_ui_alive: bool
+    wall_mode_only: bool
+    wall_awww_flags: str
     theme_window_bg: str
     theme_text_color: str
     theme_header_bg_start: str
@@ -70,6 +72,8 @@ DEFAULT_CONFIG = AppConfig(
     window_grid_max_width_pct=80,
     mouse_enabled=False,
     keep_ui_alive=False,
+    wall_mode_only=False,
+    wall_awww_flags="--transition-type center --transition-step 90 --transition-fps 60 --transition-duration 2",
     theme_window_bg="rgba(15, 18, 22, 0.58)",
     theme_text_color="#e7e7e7",
     theme_header_bg_start="rgba(20, 25, 34, 0.58)",
@@ -196,6 +200,17 @@ def _sanitize_css_color(value: object, default: str) -> str:
     return color
 
 
+def _sanitize_cli_flags(value: object, default: str) -> str:
+    if not isinstance(value, str):
+        return default
+    flags = value.strip()
+    if len(flags) > 512:
+        return default
+    if any(ch in flags for ch in ("\n", "\r", "\0")):
+        return default
+    return flags
+
+
 def _load_optional_json(path: Path) -> dict[str, Any]:
     try:
         raw = path.read_text(encoding="utf-8")
@@ -272,6 +287,7 @@ def load_config() -> AppConfig:
 
     root = _as_dict(data)
     main = _as_dict(root.get("main"))
+    wall = _as_dict(root.get("wall"))
     theme = _as_dict(root.get("theme"))
     panel = _as_dict(root.get("panel"))
     colors_path_candidates = [CONFIG_PATH.parent / "colors.json"]
@@ -347,6 +363,11 @@ def load_config() -> AppConfig:
         ),
         mouse_enabled=bool(_pick(main, root, "mouse_enabled", DEFAULT_CONFIG.mouse_enabled)),
         keep_ui_alive=bool(_pick(main, root, "keep_ui_alive", DEFAULT_CONFIG.keep_ui_alive)),
+        wall_mode_only=bool(_pick(wall, root, "wall_mode_only", DEFAULT_CONFIG.wall_mode_only)),
+        wall_awww_flags=_sanitize_cli_flags(
+            _pick(wall, root, "wall_awww_flags", DEFAULT_CONFIG.wall_awww_flags),
+            DEFAULT_CONFIG.wall_awww_flags,
+        ),
         theme_window_bg=_sanitize_css_color(
             _pick_theme_color(
                 "window_bg",
@@ -535,6 +556,13 @@ def write_config(config: AppConfig) -> None:
             "window_grid_max_width_pct": config.window_grid_max_width_pct,
             "mouse_enabled": config.mouse_enabled,
             "keep_ui_alive": config.keep_ui_alive,
+        },
+        "wall": {
+            "wall_mode_only": config.wall_mode_only,
+            "wall_awww_flags": _sanitize_cli_flags(
+                config.wall_awww_flags,
+                DEFAULT_CONFIG.wall_awww_flags,
+            ),
         },
         "theme": {
             "window_bg": _sanitize_css_color(

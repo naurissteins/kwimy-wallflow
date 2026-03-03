@@ -81,6 +81,7 @@ class ConfigTests(unittest.TestCase):
                 json.dumps(
                     {
                         "main": {"window_grid_cols": 5},
+                        "wall": {"wall_mode_only": True, "wall_awww_flags": "--transition-type any"},
                         "theme": {"window_radius": 22},
                         "panel": {"panel_thumbs_col": 9},
                     }
@@ -95,6 +96,8 @@ class ConfigTests(unittest.TestCase):
                 loaded = config.load_config()
 
             self.assertEqual(loaded.window_grid_cols, 5)
+            self.assertTrue(loaded.wall_mode_only)
+            self.assertEqual(loaded.wall_awww_flags, "--transition-type any")
             self.assertEqual(loaded.theme_window_radius, 22)
             self.assertEqual(loaded.panel_thumbs_col, 9)
 
@@ -214,8 +217,11 @@ class ConfigTests(unittest.TestCase):
 
             payload = json.loads(cfg_path.read_text(encoding="utf-8"))
             self.assertIn("main", payload)
+            self.assertIn("wall", payload)
             self.assertIn("theme", payload)
             self.assertIn("panel", payload)
+            self.assertIn("wall_mode_only", payload["wall"])
+            self.assertIn("wall_awww_flags", payload["wall"])
             self.assertIn("panel_thumbs_col", payload["panel"])
             self.assertIn("window_bg", payload["theme"])
             self.assertIn("applied_overlay_bg", payload["theme"])
@@ -342,6 +348,34 @@ class ConfigTests(unittest.TestCase):
             self.assertEqual(loaded.theme_applied_text, config.DEFAULT_CONFIG.theme_applied_text)
             self.assertEqual(loaded.theme_window_radius, config.MAX_THEME_RADIUS)
             self.assertEqual(loaded.theme_card_radius, 0)
+
+    def test_wall_flags_are_sanitized_on_load(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cfg_dir = root / "config"
+            cfg_dir.mkdir()
+
+            cfg_path = cfg_dir / "config.json"
+            cfg_path.write_text(
+                json.dumps(
+                    {
+                        "wall": {
+                            "wall_mode_only": True,
+                            "wall_awww_flags": "ok\nbad",
+                        }
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(config, "CONFIG_DIR", cfg_dir), patch.object(
+                config, "CONFIG_PATH", cfg_path
+            ):
+                loaded = config.load_config()
+
+            self.assertTrue(loaded.wall_mode_only)
+            self.assertEqual(loaded.wall_awww_flags, config.DEFAULT_CONFIG.wall_awww_flags)
 
     def test_css_color_transparency_detection(self) -> None:
         self.assertTrue(config.css_color_is_fully_transparent("transparent"))

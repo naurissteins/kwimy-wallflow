@@ -1,21 +1,35 @@
 # Matuwall
 
-A minimal GTK4 + libadwaita wallpaper picker for Wayland compositor. Matuwall triggers [matugen](https://github.com/InioX/matugen) to generate and apply colors from the chosen image.
+A minimal GTK4 + libadwaita wallpaper picker for Wayland compositor. Matuwall can trigger [matugen](https://github.com/InioX/matugen) to generate/apply colors from the chosen image, or run wallpaper-only mode via [awww](https://codeberg.org/LGFae/awww).
 
 https://github.com/user-attachments/assets/3401c5f1-6463-41c0-b637-d91ffb7f7b01
 
-NOTE: Matuwall does not manage and include [matugen](https://github.com/InioX/matugen) configuration, you have to use your own matugen setup.  
+- Matuwall does not manage or include [matugen](https://github.com/InioX/matugen) configuration, so you need your own matugen setup when using matugen mode.  
+- If you prefer wallpaper-only mode without matugen, you can use `wall_mode_only` and `wall_awww_flags` to customize `awww` behavior. Make sure [awww](https://codeberg.org/LGFae/awww) is installed and running before use.
 
 ## 🔥 Features
 - Two UI layouts: centered window mode and edge panel (layer shell) mode (`left`, `right`, `top`, `bottom`)
 - Daemon first workflow with IPC controls (`--show`, `--hide`, `--toggle`, `--reload`, `--quit`, `--status`)
 - Background thumbnail generation with persistent cache in `~/.cache/matuwall/`
-- One-action apply flow: activate a thumbnail to run `matugen image <wallpaper> -m <mode>`
+- One-action apply flow: activate a thumbnail to run either `matugen image <wallpaper> -m <mode>` or wallpaper-only `awww img ... <wallpaper>`
 - Keyboard navigation (`Enter` apply, `Esc` close, `Arrow keys` to navigate between thumbnails), plus optional mouse interaction
 - Styling in `config.json` (colors + corner radius), with optional `colors.json` color override, useful for customizing appearance with your own colorscheme using matugen
 
 > [!TIP]  
-> If `"keep_ui_alive": true`, changes to `config.json`, `colors.json`, or your wallpaper folder won’t take effect until you restart the **matuwall** service `systemctl --user restart matuwall.service` or `matuwall --reload`
+> If `"keep_ui_alive": true`, changes to `config.json`, `colors.json` or your wallpaper folder won’t take effect until you reload daemon `matuwall --reload` or restart the **matuwall** service `systemctl --user restart matuwall.service` if you're running daemon via `systemd`. 
+
+**What `keep_ui_alive` is for and what it does**
+
+`keep_ui_alive` controls if the picker UI stays alive in the background after you hide it.
+
+- If it is `true`, opening Matuwall again is super fast because the UI is already loaded.
+- The tradeoff is RAM usage in the background (roughly around ~200MB, can vary by setup).
+- If it is `false`, the UI fully exits when hidden, so it uses less RAM, but next open is slower.
+
+Simple rule:
+- If RAM is not a big deal and you use Matuwall often, keep it `true`.
+- If you don’t open Matuwall very often, keep it `false` to avoid extra background memory use.
+
 
 ## Installation
 ### AUR (Arch Linux)
@@ -100,6 +114,10 @@ Default config:
     "mouse_enabled": false,
     "keep_ui_alive": false
   },
+  "wall": {
+    "wall_mode_only": false,
+    "wall_awww_flags": "--transition-type center --transition-step 90 --transition-fps 60 --transition-duration 2"
+  },
   "theme": {
     "window_bg": "rgba(15, 18, 22, 0.58)",
     "text_color": "#e7e7e7",
@@ -129,6 +147,27 @@ Default config:
     "panel_margin_right": 0
   }
 }
+```
+
+## Wall Mode (Optional, no matugen)
+Use wall-only mode if you want Matuwall to set wallpapers without running `matugen`.
+
+```json
+"wall": {
+  "wall_mode_only": true,
+  "wall_awww_flags": "--transition-type center --transition-step 90 --transition-fps 60 --transition-duration 2"
+}
+```
+
+Behavior:
+- `wall_mode_only = false` (default): keeps current behavior and runs `matugen image <path> -m <mode>`.
+- `wall_mode_only = true`: runs `awww img <flags> <path>` and skips `matugen`.
+- `wall_awww_flags` should contain only flags (no `awww img` prefix and no image path).
+- The image path is injected automatically from the selected thumbnail in your `wallpaper_dir`.
+
+Example generated command:
+```bash
+awww img --transition-type center --transition-step 90 --transition-fps 60 --transition-duration 2 /path/to/image.jpg
 ```
 
 ## Hyprland
@@ -205,6 +244,8 @@ output_path = '~/.config/matuwall/colors.json'
 - `window_grid_max_width_pct` caps the window width as a percentage of the screen (default 80)
 - `mouse_enabled` toggles pointer interaction (click, hover, scroll). I recommend to keep this false
 - `keep_ui_alive` keeps the UI process running between show/hide (faster open, higher memory use).
+- `wall.wall_mode_only` enables wallpaper-only mode and skips matugen (`false` by default)
+- `wall.wall_awww_flags` are appended to `awww img` before the selected image path
 - `theme.window_radius`, `theme.card_radius`, and `theme.thumb_radius` are clamped to `0..64`
 - Invalid color strings in `theme` are ignored and fallback to defaults
 - `colors.json` can override theme colors (`window_bg`, `text_color`, `header_bg_start`, `header_bg_end`, `backdrop_bg`, `card_bg`, `card_border`, `card_hover_bg`, `card_hover_border`, `card_selected_bg`, `card_selected_border`, `applied_overlay_bg`, `applied_text`)

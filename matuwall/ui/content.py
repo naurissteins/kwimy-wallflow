@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shlex
 import subprocess
 from pathlib import Path
 
@@ -271,6 +272,14 @@ class ContentMixin:
     def _run_matugen(self, path: Path) -> None:
         if not self.config:
             return
+        if self.config.wall_mode_only:
+            self._run_awww(path)
+            return
+        self._run_matugen_image(path)
+
+    def _run_matugen_image(self, path: Path) -> None:
+        if not self.config:
+            return
         try:
             env = os.environ.copy()
             env.pop("LD_PRELOAD", None)
@@ -291,6 +300,32 @@ class ContentMixin:
                 self._show_toast("Applied")
         except FileNotFoundError:
             self._show_toast("matugen not found in PATH")
+
+    def _run_awww(self, path: Path) -> None:
+        if not self.config:
+            return
+        try:
+            flags = shlex.split(self.config.wall_awww_flags) if self.config.wall_awww_flags else []
+        except ValueError:
+            self._show_toast("Invalid wall_awww_flags")
+            return
+        try:
+            env = os.environ.copy()
+            env.pop("LD_PRELOAD", None)
+            env.pop("GDK_BACKEND", None)
+            subprocess.Popen(
+                [
+                    "awww",
+                    "img",
+                    *flags,
+                    str(path),
+                ],
+                env=env,
+            )
+            if not self._show_applied_overlay(path):
+                self._show_toast("Applied")
+        except FileNotFoundError:
+            self._show_toast("awww not found in PATH")
 
     def _show_toast(self, message: str) -> None:
         if not self._toast_overlay:
