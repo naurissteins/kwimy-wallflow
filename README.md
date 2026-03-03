@@ -112,6 +112,8 @@ Default config:
     "card_hover_border": "rgba(255, 255, 255, 0.2)",
     "card_selected_bg": "rgba(255, 255, 255, 0.12)",
     "card_selected_border": "rgba(255, 255, 255, 0.25)",
+    "applied_overlay_bg": "rgba(0, 0, 0, 0.58)",
+    "applied_text": "#ffffff",
     "window_radius": 15,
     "card_radius": 14,
     "thumb_radius": 10
@@ -182,7 +184,9 @@ If `~/.config/matuwall/colors.json` exists, its color keys override `theme` colo
   "card_hover_bg": "{{colors.secondary.dark.rgba | set_alpha: 0.08}}",
   "card_hover_border": "{{colors.primary.default.rgba | set_alpha: 0.2}}",
   "card_selected_bg": "{{colors.primary.default.rgba | set_alpha: 0.12}}",
-  "card_selected_border": "{{colors.primary.default.rgba | set_alpha: 0.35}}"
+  "card_selected_border": "{{colors.primary.default.rgba | set_alpha: 0.35}}",
+  "applied_overlay_bg": "{{colors.background.default.rgba | set_alpha: 0.45}}",
+  "applied_text": "{{colors.primary.default.hex}}"
 }
 ```
 3. Then add the following to your matugen config file `~/.config/matugen/config.toml`:
@@ -203,7 +207,7 @@ output_path = '~/.config/matuwall/colors.json'
 - `keep_ui_alive` keeps the UI process running between show/hide (faster open, higher memory use).
 - `theme.window_radius`, `theme.card_radius`, and `theme.thumb_radius` are clamped to `0..64`
 - Invalid color strings in `theme` are ignored and fallback to defaults
-- `colors.json` can override theme colors (`window_bg`, `text_color`, `header_bg_start`, `header_bg_end`, `backdrop_bg`, `card_bg`, `card_border`, `card_hover_bg`, `card_hover_border`, `card_selected_bg`, `card_selected_border`)
+- `colors.json` can override theme colors (`window_bg`, `text_color`, `header_bg_start`, `header_bg_end`, `backdrop_bg`, `card_bg`, `card_border`, `card_hover_bg`, `card_hover_border`, `card_selected_bg`, `card_selected_border`, `applied_overlay_bg`, `applied_text`)
 - `panel_mode` enables layer-shell mode (requires `gtk-layer-shell` with Gtk4 typelibs).
 - `panel_edge` can be `left`, `right`, `top`, `bottom`.
 - `panel_thumbs_col` is the number of thumbnails to display (width for top/bottom panels, height for left/right). If it's too large for your monitor/margins, it automatically caps visible thumbs to fit on screen

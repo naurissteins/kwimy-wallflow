@@ -87,6 +87,14 @@ gridview child:hover .matuwall-card {{
 .matuwall-thumb {{
     border-radius: {int(self.config.theme_thumb_radius)}px;
 }}
+
+.matuwall-applied-overlay {{
+    background: {self.config.theme_applied_overlay_bg};
+}}
+
+.matuwall-applied-text {{
+    color: {self.config.theme_applied_text};
+}}
 """
         provider = Gtk.CssProvider()
         try:

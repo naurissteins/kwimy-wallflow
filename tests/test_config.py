@@ -122,7 +122,11 @@ class ConfigTests(unittest.TestCase):
                 json.dumps(
                     {
                         "window_bg": "rgba(1, 2, 3, 0.8)",
-                        "theme": {"text_color": "#abcdef"},
+                        "theme": {
+                            "text_color": "#abcdef",
+                            "applied_text": "#123456",
+                        },
+                        "applied_overlay_bg": "rgba(10, 20, 30, 0.4)",
                         "window_radius": 0,
                     }
                 )
@@ -137,6 +141,8 @@ class ConfigTests(unittest.TestCase):
 
             self.assertEqual(loaded.theme_window_bg, "rgba(1, 2, 3, 0.8)")
             self.assertEqual(loaded.theme_text_color, "#abcdef")
+            self.assertEqual(loaded.theme_applied_overlay_bg, "rgba(10, 20, 30, 0.4)")
+            self.assertEqual(loaded.theme_applied_text, "#123456")
             self.assertEqual(loaded.theme_window_radius, 30)
 
     def test_colors_json_supports_trailing_commas(self) -> None:
@@ -212,6 +218,8 @@ class ConfigTests(unittest.TestCase):
             self.assertIn("panel", payload)
             self.assertIn("panel_thumbs_col", payload["panel"])
             self.assertIn("window_bg", payload["theme"])
+            self.assertIn("applied_overlay_bg", payload["theme"])
+            self.assertIn("applied_text", payload["theme"])
             self.assertIn("window_radius", payload["theme"])
             self.assertNotIn("card_margin", payload)
             self.assertNotIn("panel_fit", payload)
@@ -310,6 +318,8 @@ class ConfigTests(unittest.TestCase):
                     {
                         "theme_window_bg": "red; color: blue;",
                         "theme_card_bg": "",
+                        "theme_applied_overlay_bg": "rgba(0,0,0,0.5);",
+                        "theme_applied_text": "",
                         "theme_window_radius": 999,
                         "theme_card_radius": -10,
                     }
@@ -325,6 +335,11 @@ class ConfigTests(unittest.TestCase):
 
             self.assertEqual(loaded.theme_window_bg, config.DEFAULT_CONFIG.theme_window_bg)
             self.assertEqual(loaded.theme_card_bg, config.DEFAULT_CONFIG.theme_card_bg)
+            self.assertEqual(
+                loaded.theme_applied_overlay_bg,
+                config.DEFAULT_CONFIG.theme_applied_overlay_bg,
+            )
+            self.assertEqual(loaded.theme_applied_text, config.DEFAULT_CONFIG.theme_applied_text)
             self.assertEqual(loaded.theme_window_radius, config.MAX_THEME_RADIUS)
             self.assertEqual(loaded.theme_card_radius, 0)
 

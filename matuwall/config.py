@@ -43,6 +43,8 @@ class AppConfig:
     theme_card_hover_border: str
     theme_card_selected_bg: str
     theme_card_selected_border: str
+    theme_applied_overlay_bg: str
+    theme_applied_text: str
     theme_window_radius: int
     theme_card_radius: int
     theme_thumb_radius: int
@@ -79,6 +81,8 @@ DEFAULT_CONFIG = AppConfig(
     theme_card_hover_border="rgba(255, 255, 255, 0.2)",
     theme_card_selected_bg="rgba(255, 255, 255, 0.12)",
     theme_card_selected_border="rgba(255, 255, 255, 0.25)",
+    theme_applied_overlay_bg="rgba(0, 0, 0, 0.58)",
+    theme_applied_text="#ffffff",
     theme_window_radius=15,
     theme_card_radius=14,
     theme_thumb_radius=10,
@@ -431,6 +435,22 @@ def load_config() -> AppConfig:
             ),
             DEFAULT_CONFIG.theme_card_selected_border,
         ),
+        theme_applied_overlay_bg=_sanitize_css_color(
+            _pick_theme_color(
+                "applied_overlay_bg",
+                DEFAULT_CONFIG.theme_applied_overlay_bg,
+                "theme_applied_overlay_bg",
+            ),
+            DEFAULT_CONFIG.theme_applied_overlay_bg,
+        ),
+        theme_applied_text=_sanitize_css_color(
+            _pick_theme_color(
+                "applied_text",
+                DEFAULT_CONFIG.theme_applied_text,
+                "theme_applied_text",
+            ),
+            DEFAULT_CONFIG.theme_applied_text,
+        ),
         theme_window_radius=_clamp(
             _pick(
                 theme,
@@ -548,6 +568,14 @@ def write_config(config: AppConfig) -> None:
             "card_selected_border": _sanitize_css_color(
                 config.theme_card_selected_border,
                 DEFAULT_CONFIG.theme_card_selected_border,
+            ),
+            "applied_overlay_bg": _sanitize_css_color(
+                config.theme_applied_overlay_bg,
+                DEFAULT_CONFIG.theme_applied_overlay_bg,
+            ),
+            "applied_text": _sanitize_css_color(
+                config.theme_applied_text,
+                DEFAULT_CONFIG.theme_applied_text,
             ),
             "window_radius": _clamp(config.theme_window_radius, 0, MAX_THEME_RADIUS),
             "card_radius": _clamp(config.theme_card_radius, 0, MAX_THEME_RADIUS),

@@ -25,6 +25,8 @@ class WindowStateMixin:
         "theme_card_hover_border",
         "theme_card_selected_bg",
         "theme_card_selected_border",
+        "theme_applied_overlay_bg",
+        "theme_applied_text",
         "theme_window_radius",
         "theme_card_radius",
         "theme_thumb_radius",
