@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import os
 import selectors
+import shutil
 import signal
 import socket
 import subprocess
@@ -17,12 +18,18 @@ LOGGER = logging.getLogger("matuwall.daemon")
 
 
 class MatuwallDaemon:
+    _ANSI_RESET = "\x1b[0m"
+    _ANSI_CYAN = "\x1b[36m"
+    _ANSI_GREEN = "\x1b[32m"
+    _ANSI_YELLOW = "\x1b[33m"
+
     def __init__(self) -> None:
         self._selector = selectors.DefaultSelector()
         self._socket: socket.socket | None = None
         self._running = True
         self._keep_ui_alive = False
         self._panel_mode_requested = False
+        self._wall_mode_only = False
         self._config_mtime_ns: int | None = None
         self._config_size: int | None = None
         self._startup_error: str | None = None
@@ -38,6 +45,7 @@ class MatuwallDaemon:
             return 1
         self._write_pid_file()
         LOGGER.info("Daemon started (ipc=%s)", IPC_SOCKET_PATH)
+        self._log_runtime_dependency_status()
         try:
             while self._running:
                 self._load_config()
@@ -92,26 +100,31 @@ class MatuwallDaemon:
                 conn.close()
             except Exception:
                 pass
-        command = data.decode("utf-8", "ignore").strip().lower()
+        command = data.decode("utf-8", "ignore").strip()
         self._handle_command(command)
 
     def _handle_command(self, command: str) -> None:
-        if command == "show":
+        normalized = command.lower()
+        if normalized == "show":
             self._show_ui()
-        elif command == "hide":
+        elif normalized == "hide":
             self._hide_ui()
-        elif command == "toggle":
+        elif normalized == "toggle":
             if self._keep_ui_alive and self._ui_running():
                 self._signal_ui(signal.SIGHUP)
             elif self._ui_running():
                 self._hide_ui()
             else:
                 self._show_ui()
-        elif command == "quit":
+        elif normalized == "quit":
             self._hide_ui()
             self._running = False
-        elif command == "reload":
+        elif normalized == "reload":
             self._reload()
+        elif normalized.startswith("log "):
+            message = command[4:].strip()
+            if message:
+                LOGGER.info("%s", message)
 
     def _show_ui(self) -> None:
         if self._ui_running():
@@ -330,7 +343,99 @@ class MatuwallDaemon:
             pass
         self._clear_ui_pid()
 
+    @staticmethod
+    def _log_check(name: str, ok: bool, ok_text: str, warn_text: str) -> None:
+        bracket = MatuwallDaemon._colorize(
+            f"[{name}]",
+            MatuwallDaemon._ANSI_CYAN,
+        )
+        if ok:
+            status = MatuwallDaemon._colorize("OK", MatuwallDaemon._ANSI_GREEN)
+            detail = MatuwallDaemon._colorize(ok_text, MatuwallDaemon._ANSI_GREEN)
+            LOGGER.info("%s %s - %s", bracket, status, detail)
+        else:
+            status = MatuwallDaemon._colorize("Warning", MatuwallDaemon._ANSI_YELLOW)
+            detail = MatuwallDaemon._colorize(warn_text, MatuwallDaemon._ANSI_YELLOW)
+            LOGGER.warning("%s %s - %s", bracket, status, detail)
+
+    @staticmethod
+    def _ansi_enabled() -> bool:
+        if os.environ.get("NO_COLOR"):
+            return False
+        if os.environ.get("TERM", "").lower() == "dumb":
+            return False
+        try:
+            return bool(sys.stderr.isatty())
+        except Exception:
+            return False
+
+    @staticmethod
+    def _colorize(text: str, color_code: str) -> str:
+        if not MatuwallDaemon._ansi_enabled():
+            return text
+        return f"{color_code}{text}{MatuwallDaemon._ANSI_RESET}"
+
+    @staticmethod
+    def _is_process_running(process_name: str) -> bool:
+        proc_root = Path("/proc")
+        try:
+            proc_entries = proc_root.iterdir()
+        except OSError:
+            return False
+
+        process_name_bytes = process_name.encode("utf-8")
+        for entry in proc_entries:
+            if not entry.name.isdigit():
+                continue
+            comm_path = entry / "comm"
+            try:
+                if comm_path.read_text(encoding="utf-8").strip() == process_name:
+                    return True
+            except OSError:
+                pass
+
+            cmdline_path = entry / "cmdline"
+            try:
+                cmdline = cmdline_path.read_bytes()
+            except OSError:
+                continue
+            if process_name_bytes in cmdline:
+                return True
+        return False
+
+    def _log_runtime_dependency_status(self) -> None:
+        matugen_found = shutil.which("matugen") is not None
+        awww_found = shutil.which("awww") is not None
+        awww_daemon_running = self._is_process_running("awww-daemon")
+
+        self._log_check("matugen", matugen_found, "Found", "Not found")
+        self._log_check("awww", awww_found, "Found", "Not found")
+        self._log_check(
+            "awww-daemon",
+            awww_daemon_running,
+            "Running",
+            "Not running",
+        )
+
+        if self._wall_mode_only:
+            LOGGER.info("[apply-mode] wall-only (awww)")
+            if not awww_found:
+                LOGGER.warning(
+                    "[apply-mode] Warning - wall_mode_only=true but awww is not installed"
+                )
+            elif not awww_daemon_running:
+                LOGGER.warning(
+                    "[apply-mode] Warning - wall_mode_only=true but awww-daemon is not running"
+                )
+        else:
+            LOGGER.info("[apply-mode] matugen")
+            if not matugen_found:
+                LOGGER.warning(
+                    "[apply-mode] Warning - wall_mode_only=false but matugen is not installed"
+                )
+
     def _load_config(self, force: bool = False) -> None:
+        had_previous_config = self._config_mtime_ns is not None
         try:
             stat = CONFIG_PATH.stat()
             mtime_ns = stat.st_mtime_ns
@@ -349,6 +454,10 @@ class MatuwallDaemon:
         cfg = load_config()
         self._keep_ui_alive = bool(cfg.keep_ui_alive)
         self._panel_mode_requested = bool(cfg.panel_mode)
+        previous_wall_mode_only = self._wall_mode_only
+        self._wall_mode_only = bool(cfg.wall_mode_only)
+        if had_previous_config and previous_wall_mode_only != self._wall_mode_only:
+            self._log_runtime_dependency_status()
 
 
 def run_daemon() -> int:

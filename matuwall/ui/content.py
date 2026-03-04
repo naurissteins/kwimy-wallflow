@@ -2,6 +2,8 @@ from __future__ import annotations
 
 import os
 import shlex
+import shutil
+import socket
 import subprocess
 from pathlib import Path
 
@@ -13,6 +15,7 @@ gi.require_version("Gdk", "4.0")
 
 from gi.repository import Adw, Gdk, Gio, GLib, Gtk
 
+from ..paths import IPC_SOCKET_PATH
 from ..wallpapers import list_wallpapers
 from .models import WallpaperItem
 
@@ -280,25 +283,29 @@ class ContentMixin:
     def _run_matugen_image(self, path: Path) -> None:
         if not self.config:
             return
+        if shutil.which("matugen") is None:
+            self._report_apply_issue("matugen not found")
+            self._show_toast("matugen not found in PATH")
+            return
+        command = [
+            "matugen",
+            "image",
+            str(path),
+            "-m",
+            self.config.matugen_mode,
+            "--source-color-index",
+            "0",
+        ]
         try:
             env = os.environ.copy()
             env.pop("LD_PRELOAD", None)
             env.pop("GDK_BACKEND", None)
-            subprocess.Popen(
-                [
-                    "matugen",
-                    "image",
-                    str(path),
-                    "-m",
-                    self.config.matugen_mode,
-                    "--source-color-index",
-                    "0",
-                ],
-                env=env,
-            )
+            subprocess.Popen(command, env=env)
+            self._report_apply_command(command)
             if not self._show_applied_overlay(path):
                 self._show_toast("Applied")
         except FileNotFoundError:
+            self._report_apply_issue("matugen not found")
             self._show_toast("matugen not found in PATH")
 
     def _run_awww(self, path: Path) -> None:
@@ -307,25 +314,80 @@ class ContentMixin:
         try:
             flags = shlex.split(self.config.wall_awww_flags) if self.config.wall_awww_flags else []
         except ValueError:
+            self._report_apply_issue("invalid wall_awww_flags")
             self._show_toast("Invalid wall_awww_flags")
             return
+        if shutil.which("awww") is None:
+            self._report_apply_issue("awww not found")
+            self._show_toast("awww not found in PATH")
+            return
+        if not self._is_process_running("awww-daemon"):
+            self._report_apply_issue("awww-daemon is not running")
+            self._show_toast("awww-daemon is not running")
+            return
+        command = [
+            "awww",
+            "img",
+            *flags,
+            str(path),
+        ]
         try:
             env = os.environ.copy()
             env.pop("LD_PRELOAD", None)
             env.pop("GDK_BACKEND", None)
-            subprocess.Popen(
-                [
-                    "awww",
-                    "img",
-                    *flags,
-                    str(path),
-                ],
-                env=env,
-            )
+            subprocess.Popen(command, env=env)
+            self._report_apply_command(command)
             if not self._show_applied_overlay(path):
                 self._show_toast("Applied")
         except FileNotFoundError:
+            self._report_apply_issue("awww not found")
             self._show_toast("awww not found in PATH")
+
+    @staticmethod
+    def _report_apply_log(message: str) -> None:
+        payload = f"log {message}".encode()
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+                sock.connect(str(IPC_SOCKET_PATH))
+                sock.send(payload)
+        except OSError:
+            return
+
+    @staticmethod
+    def _report_apply_command(command: list[str]) -> None:
+        ContentMixin._report_apply_log(f"[apply-cmd] {shlex.join(command)}")
+
+    @staticmethod
+    def _report_apply_issue(issue: str) -> None:
+        ContentMixin._report_apply_log(f"[apply-cmd] {issue}")
+
+    @staticmethod
+    def _is_process_running(process_name: str) -> bool:
+        proc_root = Path("/proc")
+        try:
+            proc_entries = proc_root.iterdir()
+        except OSError:
+            return False
+
+        process_name_bytes = process_name.encode()
+        for entry in proc_entries:
+            if not entry.name.isdigit():
+                continue
+            comm_path = entry / "comm"
+            try:
+                if comm_path.read_text(encoding="utf-8").strip() == process_name:
+                    return True
+            except OSError:
+                pass
+
+            cmdline_path = entry / "cmdline"
+            try:
+                cmdline = cmdline_path.read_bytes()
+            except OSError:
+                continue
+            if process_name_bytes in cmdline:
+                return True
+        return False
 
     def _show_toast(self, message: str) -> None:
         if not self._toast_overlay:
