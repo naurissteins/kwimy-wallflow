@@ -7,6 +7,10 @@ https://github.com/user-attachments/assets/5b62921e-d2a9-4f68-98fb-ad5b589e7695
 - Matuwall does not manage or include [matugen](https://github.com/InioX/matugen) configuration, so you need your own matugen setup when using matugen mode.  
 - If you prefer wallpaper-only mode without matugen, you can use `wall_mode_only` and `wall_awww_flags` to customize `awww` behavior. Make sure [awww](https://codeberg.org/LGFae/awww) is installed and running before use.
 
+> [!IMPORTANT]
+> Matugen `>= 4.0.0` is required for matugen mode.
+> For latest Matugen on Arch Linux, install from AUR: [matugen-git](https://aur.archlinux.org/packages/matugen-git)
+
 ## 🔥 Features
 - Two UI layouts: centered window mode and edge panel (layer shell) mode (`left`, `right`, `top`, `bottom`)
 - Daemon first workflow with IPC controls (`--show`, `--hide`, `--toggle`, `--reload`, `--quit`, `--status`)
@@ -235,7 +239,7 @@ input_path = '~/.config/matugen/templates/matuwall-colors.json'
 output_path = '~/.config/matuwall/colors.json'
 ```
 
-## Notes
+## Config Reference
 - Wallpapers are read from `wallpaper_dir` and support: `jpg`, `jpeg`, `png`, `webp`, `bmp`, `gif`
 - `thumbnail_size` defines thumbnail width and is capped to `1000` (just to avoid oversized thumbnails
 - `thumbnail_shape` controls aspect ratio: `landscape` (16:9, default) or `square` (1:1)
