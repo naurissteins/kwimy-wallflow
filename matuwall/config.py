@@ -17,12 +17,25 @@ MAX_WINDOW_GRID_ROWS = 12
 MAX_THEME_RADIUS = 64
 MIN_PANEL_EXCLUSIVE_ZONE = -1
 MAX_PANEL_EXCLUSIVE_ZONE = 4096
+MATUGEN_TYPES = {
+    "scheme-content",
+    "scheme-expressive",
+    "scheme-fidelity",
+    "scheme-fruit-salad",
+    "scheme-monochrome",
+    "scheme-neutral",
+    "scheme-rainbow",
+    "scheme-tonal-spot",
+    "scheme-vibrant",
+}
 
 
 @dataclass
 class AppConfig:
     wallpaper_dir: str
     matugen_mode: str
+    matugen_type: str
+    matugen_contrast: float | None
     thumbnail_size: int
     thumbnail_shape: str
     batch_size: int
@@ -63,6 +76,8 @@ class AppConfig:
 DEFAULT_CONFIG = AppConfig(
     wallpaper_dir="~/Pictures/Wallpapers",
     matugen_mode="dark",
+    matugen_type="scheme-tonal-spot",
+    matugen_contrast=None,
     thumbnail_size=256,
     thumbnail_shape="landscape",
     batch_size=16,
@@ -187,6 +202,21 @@ def _pick(
     return default
 
 
+def _pick_matugen_contrast(
+    matugen: dict[str, Any], root: dict[str, Any], default: Any
+) -> Any:
+    if "matugen_contrast" in matugen:
+        return matugen.get("matugen_contrast")
+    if "matugen_contrast" in root:
+        return root.get("matugen_contrast")
+    # Backward compatibility for older config key.
+    if "contrast" in matugen:
+        return matugen.get("contrast")
+    if "contrast" in root:
+        return root.get("contrast")
+    return default
+
+
 def _sanitize_css_color(value: object, default: str) -> str:
     if not isinstance(value, str):
         return default
@@ -209,6 +239,37 @@ def _sanitize_cli_flags(value: object, default: str) -> str:
     if any(ch in flags for ch in ("\n", "\r", "\0")):
         return default
     return flags
+
+
+def _sanitize_matugen_type(value: object, default: str) -> str:
+    if not isinstance(value, str):
+        return default
+    normalized = value.strip().lower()
+    if normalized in MATUGEN_TYPES:
+        return normalized
+    return default
+
+
+def _sanitize_matugen_contrast(value: object) -> float | None:
+    if value is None:
+        return None
+    if isinstance(value, bool):
+        return None
+    if isinstance(value, str):
+        raw = value.strip()
+        if not raw:
+            return None
+        try:
+            parsed = float(raw)
+        except ValueError:
+            return None
+    elif isinstance(value, (int, float)):
+        parsed = float(value)
+    else:
+        return None
+    if parsed < -1.0 or parsed > 1.0:
+        return None
+    return parsed
 
 
 def _load_optional_json(path: Path) -> dict[str, Any]:
@@ -287,9 +348,11 @@ def load_config() -> AppConfig:
 
     root = _as_dict(data)
     main = _as_dict(root.get("main"))
+    matugen = _as_dict(root.get("matugen"))
     wall = _as_dict(root.get("wall"))
     theme = _as_dict(root.get("theme"))
     panel = _as_dict(root.get("panel"))
+    legacy_matugen_mode = _pick(main, root, "matugen_mode", DEFAULT_CONFIG.matugen_mode)
     colors_path_candidates = [CONFIG_PATH.parent / "colors.json"]
     if CONFIG_DIR != CONFIG_PATH.parent:
         colors_path_candidates.append(CONFIG_DIR / "colors.json")
@@ -315,7 +378,21 @@ def load_config() -> AppConfig:
 
     return AppConfig(
         wallpaper_dir=str(_pick(main, root, "wallpaper_dir", DEFAULT_CONFIG.wallpaper_dir)),
-        matugen_mode=str(_pick(main, root, "matugen_mode", DEFAULT_CONFIG.matugen_mode)),
+        matugen_mode=str(
+            _pick(
+                matugen,
+                root,
+                "matugen_mode",
+                legacy_matugen_mode,
+            )
+        ),
+        matugen_type=_sanitize_matugen_type(
+            _pick(matugen, root, "matugen_type", DEFAULT_CONFIG.matugen_type),
+            DEFAULT_CONFIG.matugen_type,
+        ),
+        matugen_contrast=_sanitize_matugen_contrast(
+            _pick_matugen_contrast(matugen, root, DEFAULT_CONFIG.matugen_contrast)
+        ),
         thumbnail_size=max(
             1,
             min(
@@ -546,7 +623,6 @@ def write_config(config: AppConfig) -> None:
     payload = {
         "main": {
             "wallpaper_dir": config.wallpaper_dir,
-            "matugen_mode": config.matugen_mode,
             "thumbnail_size": max(1, min(MAX_THUMBNAIL_SIZE, int(config.thumbnail_size))),
             "thumbnail_shape": config.thumbnail_shape,
             "batch_size": _clamp(config.batch_size, 1, MAX_BATCH_SIZE),
@@ -556,6 +632,13 @@ def write_config(config: AppConfig) -> None:
             "window_grid_max_width_pct": config.window_grid_max_width_pct,
             "mouse_enabled": config.mouse_enabled,
             "keep_ui_alive": config.keep_ui_alive,
+        },
+        "matugen": {
+            "matugen_mode": config.matugen_mode,
+            "matugen_type": _sanitize_matugen_type(
+                config.matugen_type,
+                DEFAULT_CONFIG.matugen_type,
+            ),
         },
         "wall": {
             "wall_mode_only": config.wall_mode_only,
@@ -624,4 +707,8 @@ def write_config(config: AppConfig) -> None:
             "panel_margin_right": config.panel_margin_right,
         },
     }
+    matugen_payload = cast(dict[str, Any], payload["matugen"])
+    contrast = _sanitize_matugen_contrast(config.matugen_contrast)
+    if contrast is not None:
+        matugen_payload["matugen_contrast"] = contrast
     CONFIG_PATH.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")

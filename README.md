@@ -107,7 +107,6 @@ Default config:
 {
   "main": {
     "wallpaper_dir": "~/Pictures/Wallpapers",
-    "matugen_mode": "dark",
     "thumbnail_size": 256,
     "thumbnail_shape": "landscape",
     "batch_size": 16,
@@ -117,6 +116,10 @@ Default config:
     "window_grid_max_width_pct": 80,
     "mouse_enabled": false,
     "keep_ui_alive": false
+  },
+  "matugen": {
+    "matugen_mode": "dark",
+    "matugen_type": "scheme-tonal-spot"
   },
   "wall": {
     "wall_mode_only": false,
@@ -240,22 +243,37 @@ output_path = '~/.config/matuwall/colors.json'
 ```
 
 ## Config Reference
-- Wallpapers are read from `wallpaper_dir` and support: `jpg`, `jpeg`, `png`, `webp`, `bmp`, `gif`
-- `thumbnail_size` defines thumbnail width and is capped to `1000` (just to avoid oversized thumbnails
-- `thumbnail_shape` controls aspect ratio: `landscape` (16:9, default) or `square` (1:1)
-- `batch_size` controls how many thumbnails are appended per UI idle cycle (smaller = smoother, larger = faster fill). Clamped to `1..128`
-- `window_grid_cols` / `window_grid_rows` control the default window size based on thumbnail dimensions. Each is clamped to `1..12`
-- `window_grid_max_width_pct` caps the window width as a percentage of the screen (default 80)
-- `mouse_enabled` toggles pointer interaction (click, hover, scroll). I recommend to keep this false
-- `keep_ui_alive` keeps the UI process running between show/hide (faster open, higher memory use).
-- `wall.wall_mode_only` enables wallpaper-only mode and skips matugen (`false` by default)
-- `wall.wall_awww_flags` are appended to `awww img` before the selected image path
-- `theme.window_radius`, `theme.card_radius`, and `theme.thumb_radius` are clamped to `0..64`
-- Invalid color strings in `theme` are ignored and fallback to defaults
-- `colors.json` can override theme colors (`window_bg`, `text_color`, `header_bg_start`, `header_bg_end`, `backdrop_bg`, `card_bg`, `card_border`, `card_hover_bg`, `card_hover_border`, `card_selected_bg`, `card_selected_border`, `applied_overlay_bg`, `applied_text`)
-- `panel_mode` enables layer-shell mode (requires `gtk-layer-shell` with Gtk4 typelibs).
-- `panel_edge` can be `left`, `right`, `top`, `bottom`.
-- `panel_thumbs_col` is the number of thumbnails to display (width for top/bottom panels, height for left/right). If it's too large for your monitor/margins, it automatically caps visible thumbs to fit on screen
-- `panel_exclusive_zone` controls reserved space (`-1` = none). Clamped to `-1..4096`
-- `panel_margin_top` / `panel_margin_bottom` add margins in pixels (useful to sit under a top bar)
-- `panel_margin_left` / `panel_margin_right` add margins for top/bottom panels
+### `main`
+- `wallpaper_dir`: source folder for wallpapers. Supported formats: `jpg`, `jpeg`, `png`, `webp`, `bmp`, `gif`.
+- `thumbnail_size`: thumbnail width, capped to `1000`.
+- `thumbnail_shape`: `landscape` (16:9, default) or `square` (1:1).
+- `batch_size`: thumbnails appended per UI idle cycle. Clamped to `1..128`.
+- `window_grid_cols` / `window_grid_rows`: default window sizing grid. Each clamped to `1..12`.
+- `window_grid_max_width_pct`: max window width as screen percent (default `80`).
+- `mouse_enabled`: enables click/hover/scroll pointer interaction.
+- `keep_ui_alive`: keeps UI in memory between show/hide (faster open, higher RAM use).
+
+### `matugen`
+- `matugen_mode`: mode used in `matugen image` command (for example `dark` or `light`).
+- `matugen_type`: color scheme type used in `matugen image -t ...`.
+  Allowed values: `scheme-content`, `scheme-expressive`, `scheme-fidelity`, `scheme-fruit-salad`, `scheme-monochrome`, `scheme-neutral`, `scheme-rainbow`, `scheme-tonal-spot`, `scheme-vibrant`.
+- `matugen_contrast` (optional): passes `--contrast <value>` to matugen. Allowed range is `-1..1`.
+  Leave it unset if you want matugen defaults.
+
+### `wall`
+- `wall_mode_only`: when `true`, skips matugen and uses `awww` only.
+- `wall_awww_flags`: appended to `awww img` before the selected image path.
+
+### `theme`
+- `window_radius`, `card_radius`, `thumb_radius`: clamped to `0..64`.
+- Invalid color strings are ignored and fallback to defaults.
+- `colors.json` can override theme colors:
+  `window_bg`, `text_color`, `header_bg_start`, `header_bg_end`, `backdrop_bg`, `card_bg`, `card_border`, `card_hover_bg`, `card_hover_border`, `card_selected_bg`, `card_selected_border`, `applied_overlay_bg`, `applied_text`.
+
+### `panel`
+- `panel_mode`: enables layer-shell mode (requires `gtk-layer-shell` Gtk4 typelibs).
+- `panel_edge`: `left`, `right`, `top`, `bottom`.
+- `panel_thumbs_col`: thumbnail count (width for top/bottom, height for left/right), auto-capped to screen space.
+- `panel_exclusive_zone`: reserved space (`-1` = none), clamped to `-1..4096`.
+- `panel_margin_top` / `panel_margin_bottom`: vertical margins in pixels.
+- `panel_margin_left` / `panel_margin_right`: horizontal margins for top/bottom panels.

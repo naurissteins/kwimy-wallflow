@@ -81,6 +81,11 @@ class ConfigTests(unittest.TestCase):
                 json.dumps(
                     {
                         "main": {"window_grid_cols": 5},
+                        "matugen": {
+                            "matugen_mode": "light",
+                            "matugen_type": "scheme-vibrant",
+                            "matugen_contrast": 0.35,
+                        },
                         "wall": {"wall_mode_only": True, "wall_awww_flags": "--transition-type any"},
                         "theme": {"window_radius": 22},
                         "panel": {"panel_thumbs_col": 9},
@@ -96,10 +101,39 @@ class ConfigTests(unittest.TestCase):
                 loaded = config.load_config()
 
             self.assertEqual(loaded.window_grid_cols, 5)
+            self.assertEqual(loaded.matugen_mode, "light")
+            self.assertEqual(loaded.matugen_type, "scheme-vibrant")
+            self.assertEqual(loaded.matugen_contrast, 0.35)
             self.assertTrue(loaded.wall_mode_only)
             self.assertEqual(loaded.wall_awww_flags, "--transition-type any")
             self.assertEqual(loaded.theme_window_radius, 22)
             self.assertEqual(loaded.panel_thumbs_col, 9)
+
+    def test_load_config_supports_legacy_main_matugen_mode(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cfg_dir = root / "config"
+            cfg_dir.mkdir()
+
+            cfg_path = cfg_dir / "config.json"
+            cfg_path.write_text(
+                json.dumps(
+                    {
+                        "main": {
+                            "matugen_mode": "light",
+                        }
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(config, "CONFIG_DIR", cfg_dir), patch.object(
+                config, "CONFIG_PATH", cfg_path
+            ):
+                loaded = config.load_config()
+
+            self.assertEqual(loaded.matugen_mode, "light")
 
     def test_colors_json_overrides_theme_colors_only(self) -> None:
         with tempfile.TemporaryDirectory() as td:
@@ -217,9 +251,13 @@ class ConfigTests(unittest.TestCase):
 
             payload = json.loads(cfg_path.read_text(encoding="utf-8"))
             self.assertIn("main", payload)
+            self.assertIn("matugen", payload)
             self.assertIn("wall", payload)
             self.assertIn("theme", payload)
             self.assertIn("panel", payload)
+            self.assertIn("matugen_mode", payload["matugen"])
+            self.assertIn("matugen_type", payload["matugen"])
+            self.assertNotIn("matugen_contrast", payload["matugen"])
             self.assertIn("wall_mode_only", payload["wall"])
             self.assertIn("wall_awww_flags", payload["wall"])
             self.assertIn("panel_thumbs_col", payload["panel"])
@@ -227,6 +265,7 @@ class ConfigTests(unittest.TestCase):
             self.assertIn("applied_overlay_bg", payload["theme"])
             self.assertIn("applied_text", payload["theme"])
             self.assertIn("window_radius", payload["theme"])
+            self.assertNotIn("matugen_mode", payload["main"])
             self.assertNotIn("card_margin", payload)
             self.assertNotIn("panel_fit", payload)
             self.assertNotIn("show_scrollbar", payload)
@@ -376,6 +415,127 @@ class ConfigTests(unittest.TestCase):
 
             self.assertTrue(loaded.wall_mode_only)
             self.assertEqual(loaded.wall_awww_flags, config.DEFAULT_CONFIG.wall_awww_flags)
+
+    def test_matugen_type_is_sanitized_on_load(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cfg_dir = root / "config"
+            cfg_dir.mkdir()
+
+            cfg_path = cfg_dir / "config.json"
+            cfg_path.write_text(
+                json.dumps(
+                    {
+                        "matugen": {
+                            "matugen_type": "not-a-valid-type",
+                        }
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(config, "CONFIG_DIR", cfg_dir), patch.object(
+                config, "CONFIG_PATH", cfg_path
+            ):
+                loaded = config.load_config()
+
+            self.assertEqual(loaded.matugen_type, config.DEFAULT_CONFIG.matugen_type)
+
+    def test_matugen_contrast_is_sanitized_on_load(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cfg_dir = root / "config"
+            cfg_dir.mkdir()
+
+            cfg_path = cfg_dir / "config.json"
+            cfg_path.write_text(
+                json.dumps(
+                    {
+                        "matugen": {
+                            "matugen_contrast": 2,
+                        }
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(config, "CONFIG_DIR", cfg_dir), patch.object(
+                config, "CONFIG_PATH", cfg_path
+            ):
+                loaded = config.load_config()
+
+            self.assertIsNone(loaded.matugen_contrast)
+
+    def test_matugen_contrast_is_loaded_when_valid(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cfg_dir = root / "config"
+            cfg_dir.mkdir()
+
+            cfg_path = cfg_dir / "config.json"
+            cfg_path.write_text(
+                json.dumps(
+                    {
+                        "matugen": {
+                            "matugen_contrast": "0.42",
+                        }
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(config, "CONFIG_DIR", cfg_dir), patch.object(
+                config, "CONFIG_PATH", cfg_path
+            ):
+                loaded = config.load_config()
+
+            self.assertEqual(loaded.matugen_contrast, 0.42)
+
+    def test_write_config_persists_matugen_contrast_when_set(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cfg_dir = root / "config"
+            cfg_dir.mkdir()
+            cfg_path = cfg_dir / "config.json"
+
+            cfg = replace(config.DEFAULT_CONFIG, matugen_contrast=-0.6)
+
+            with patch.object(config, "CONFIG_DIR", cfg_dir), patch.object(
+                config, "CONFIG_PATH", cfg_path
+            ):
+                config.write_config(cfg)
+
+            payload = json.loads(cfg_path.read_text(encoding="utf-8"))
+            self.assertEqual(payload["matugen"]["matugen_contrast"], -0.6)
+
+    def test_legacy_matugen_contrast_key_is_supported_on_load(self) -> None:
+        with tempfile.TemporaryDirectory() as td:
+            root = Path(td)
+            cfg_dir = root / "config"
+            cfg_dir.mkdir()
+
+            cfg_path = cfg_dir / "config.json"
+            cfg_path.write_text(
+                json.dumps(
+                    {
+                        "matugen": {
+                            "contrast": 0.2,
+                        }
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with patch.object(config, "CONFIG_DIR", cfg_dir), patch.object(
+                config, "CONFIG_PATH", cfg_path
+            ):
+                loaded = config.load_config()
+
+            self.assertEqual(loaded.matugen_contrast, 0.2)
 
     def test_css_color_transparency_detection(self) -> None:
         self.assertTrue(config.css_color_is_fully_transparent("transparent"))

@@ -293,9 +293,13 @@ class ContentMixin:
             str(path),
             "-m",
             self.config.matugen_mode,
+            "-t",
+            self.config.matugen_type,
             "--source-color-index",
             "0",
         ]
+        if self.config.matugen_contrast is not None:
+            command.extend(["--contrast", str(self.config.matugen_contrast)])
         try:
             env = os.environ.copy()
             env.pop("LD_PRELOAD", None)
