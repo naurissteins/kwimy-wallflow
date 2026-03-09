@@ -153,5 +153,12 @@ class MatuwallApp(Adw.Application, NavigationMixin, AppBootstrapMixin, RuntimeMi
 def main() -> int:
     import sys
 
+    # Compatibility shim: older launchers may still target matuwall.app:main
+    # Route daemon startup to the dedicated daemon runtime in that case
+    if "--daemon" in sys.argv[1:] and "--ui" not in sys.argv[1:]:
+        from .daemon import run_daemon
+
+        return run_daemon()
+
     app = MatuwallApp()
     return app.run(sys.argv)
