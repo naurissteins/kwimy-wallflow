@@ -150,9 +150,10 @@ class ContentMixin:
         else:
             grid_view.set_orientation(Gtk.Orientation.VERTICAL)
 
-        grid_view.set_valign(Gtk.Align.START)
+        # grid_view.set_valign(Gtk.Align.START)
         grid_view.set_halign(Gtk.Align.FILL)
         grid_view.add_css_class("matuwall-grid")
+        grid_view.add_css_class("matuwall-viewport")
 
         if not self._panel_mode and self.config:
             cols = max(1, int(self.config.window_grid_cols))
@@ -174,18 +175,7 @@ class ContentMixin:
         self._attach_navigation(grid_view)
 
         self._grid_view = grid_view
-        viewport_box = Gtk.Box(
-            orientation=Gtk.Orientation.VERTICAL
-            if self._scroll_direction != "horizontal"
-            else Gtk.Orientation.HORIZONTAL
-        )
-        viewport_box.set_valign(Gtk.Align.START)
-        viewport_box.set_halign(Gtk.Align.FILL)
-        viewport_box.set_hexpand(True)
-        viewport_box.set_vexpand(True)
-        viewport_box.add_css_class("matuwall-viewport")
-        viewport_box.append(grid_view)
-        scroller.set_child(viewport_box)
+        scroller.set_child(grid_view)
 
         if not self.config.mouse_enabled:
             grid_view.set_can_target(False)
@@ -220,7 +210,10 @@ class ContentMixin:
         if self._panel_mode:
             visible_count = max(1, int(self._panel_thumbs_col))
         else:
-            visible_count = max(1, int(self.config.window_grid_rows if not is_horiz else self.config.window_grid_cols))
+            visible_count = max(
+                1,
+                int(self.config.window_grid_rows if not is_horiz else self.config.window_grid_cols),
+            )
 
         item_outer_width, item_outer_height = self._get_item_outer_dimensions()
 
@@ -236,7 +229,10 @@ class ContentMixin:
         if self._panel_mode:
             pos = index
         else:
-            cols = max(1, int(self.config.window_grid_cols if not is_horiz else self.config.window_grid_rows))
+            cols = max(
+                1,
+                int(self.config.window_grid_cols if not is_horiz else self.config.window_grid_rows),
+            )
             pos = index // cols
 
         top_item = int(current_vscroll // item_size)
@@ -257,11 +253,7 @@ class ContentMixin:
 
             target = Adw.CallbackAnimationTarget.new(adj.set_value)
             self._snap_anim = Adw.TimedAnimation.new(
-                self._scroller,
-                current_vscroll,
-                target_vscroll,
-                250,
-                target
+                self._scroller, current_vscroll, target_vscroll, 250, target
             )
             self._snap_anim.set_easing(Adw.Easing.EASE_OUT_CUBIC)
             self._snap_anim.play()

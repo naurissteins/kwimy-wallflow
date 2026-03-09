@@ -59,8 +59,6 @@ class ThumbnailMixin:
         applied_overlay.add_css_class("matuwall-applied-overlay")
         applied_overlay.set_halign(Gtk.Align.FILL)
         applied_overlay.set_valign(Gtk.Align.FILL)
-        applied_overlay.set_hexpand(True)
-        applied_overlay.set_vexpand(True)
         applied_overlay.set_can_target(False)
         applied_overlay.set_visible(False)
 
@@ -68,8 +66,6 @@ class ThumbnailMixin:
         applied_label.add_css_class("matuwall-applied-text")
         applied_label.set_halign(Gtk.Align.CENTER)
         applied_label.set_valign(Gtk.Align.CENTER)
-        applied_label.set_hexpand(True)
-        applied_label.set_vexpand(True)
         applied_label.set_xalign(0.5)
         applied_label.set_yalign(0.5)
         applied_overlay.append(applied_label)
@@ -85,7 +81,7 @@ class ThumbnailMixin:
             thumb_overlay.set_halign(Gtk.Align.FILL)
             picture.set_hexpand(True)
             picture.set_halign(Gtk.Align.FILL)
-        
+
         if self.config and not self.config.mouse_enabled:
             box.set_can_target(False)
 
@@ -116,9 +112,7 @@ class ThumbnailMixin:
 
         return Gdk.Texture.new_for_pixbuf(self._empty_pixbuf()), False
 
-    def _queue_thumbnail_load(
-        self, path: Path, picture: Gtk.Picture, spinner: Gtk.Spinner
-    ) -> None:
+    def _queue_thumbnail_load(self, path: Path, picture: Gtk.Picture, spinner: Gtk.Spinner) -> None:
         executor = getattr(self, "_thumb_executor", None)
         if executor is None:
             return
@@ -155,9 +149,7 @@ class ThumbnailMixin:
 
     def _set_picture_from_file(self, picture: Gtk.Picture, path: Path) -> None:
         try:
-            picture.set_paintable(
-                Gdk.Texture.new_from_file(Gio.File.new_for_path(str(path)))
-            )
+            picture.set_paintable(Gdk.Texture.new_from_file(Gio.File.new_for_path(str(path))))
         except Exception:
             return
 
@@ -236,40 +228,28 @@ class ThumbnailMixin:
         src_w = base.get_width()
         src_h = base.get_height()
         if src_w == 0 or src_h == 0:
-            return GdkPixbuf.Pixbuf.new(
-                GdkPixbuf.Colorspace.RGB, True, 8, width, height
-            )
+            return GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, width, height)
 
         scale = max(width / src_w, height / src_h)
         scaled_w = max(1, int(math.ceil(src_w * scale)))
         scaled_h = max(1, int(math.ceil(src_h * scale)))
 
-        scaled = base.scale_simple(
-            scaled_w, scaled_h, GdkPixbuf.InterpType.BILINEAR
-        )
+        scaled = base.scale_simple(scaled_w, scaled_h, GdkPixbuf.InterpType.BILINEAR)
         if scaled is None:
-            return GdkPixbuf.Pixbuf.new(
-                GdkPixbuf.Colorspace.RGB, True, 8, width, height
-            )
+            return GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, width, height)
 
         if scaled_w == width and scaled_h == height:
             return scaled
         if scaled_w < width or scaled_h < height:
             # Fallback: stretch to requested size if rounding got too small.
-            stretched = scaled.scale_simple(
-                width, height, GdkPixbuf.InterpType.BILINEAR
-            )
+            stretched = scaled.scale_simple(width, height, GdkPixbuf.InterpType.BILINEAR)
             if stretched is None:
-                return GdkPixbuf.Pixbuf.new(
-                    GdkPixbuf.Colorspace.RGB, True, 8, width, height
-                )
+                return GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB, True, 8, width, height)
             return stretched
 
         offset_x = max(0, (scaled_w - width) // 2)
         offset_y = max(0, (scaled_h - height) // 2)
-        cropped = GdkPixbuf.Pixbuf.new_subpixbuf(
-            scaled, offset_x, offset_y, width, height
-        )
+        cropped = GdkPixbuf.Pixbuf.new_subpixbuf(scaled, offset_x, offset_y, width, height)
         if cropped is None:
             return scaled
         return cropped
