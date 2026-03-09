@@ -65,7 +65,8 @@ class NavigationMixin:
             return True
 
         actual_cols = grid.get_max_columns()
-        if actual_cols < 1: actual_cols = 1
+        if actual_cols < 1:
+            actual_cols = 1
         
         # Orientation-aware logic for GridView
         is_horiz = getattr(self, "_scroll_direction", "vertical") == "horizontal"
@@ -89,7 +90,7 @@ class NavigationMixin:
 
         if 0 <= new_index < n_items:
             # Set flag for snapping logic in content.py
-            setattr(self, "_is_keyboard_navigating", True)
+            self._is_keyboard_navigating = True
             selection.set_selected(new_index)
             return True
         

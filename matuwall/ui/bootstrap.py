@@ -92,8 +92,9 @@ gridview child:hover .matuwall-card {{
     background: {self.config.theme_applied_overlay_bg};
 }}
 
-.matuwall-applied-text {{
+.matuwall-applied-icon {{
     color: {self.config.theme_applied_text};
+    filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
 }}
 """
         provider = Gtk.CssProvider()

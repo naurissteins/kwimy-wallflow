@@ -62,13 +62,16 @@ class ThumbnailMixin:
         applied_overlay.set_can_target(False)
         applied_overlay.set_visible(False)
 
-        applied_label = Gtk.Label(label="Applied")
-        applied_label.add_css_class("matuwall-applied-text")
-        applied_label.set_halign(Gtk.Align.CENTER)
-        applied_label.set_valign(Gtk.Align.CENTER)
-        applied_label.set_xalign(0.5)
-        applied_label.set_yalign(0.5)
-        applied_overlay.append(applied_label)
+        # Use a modern symbolic icon instead of text
+        applied_icon = Gtk.Image.new_from_icon_name("object-select-symbolic")
+        applied_icon.add_css_class("matuwall-applied-icon")
+        applied_icon.set_pixel_size(48)
+        applied_icon.set_halign(Gtk.Align.CENTER)
+        applied_icon.set_valign(Gtk.Align.CENTER)
+        applied_icon.set_hexpand(True)
+        applied_icon.set_vexpand(True)
+        
+        applied_overlay.append(applied_icon)
         thumb_overlay.add_overlay(applied_overlay)
 
         box.append(thumb_overlay)
