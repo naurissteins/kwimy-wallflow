@@ -32,6 +32,67 @@ class NavigationMixin:
             self._activate_selected_item()
             return True
 
+        if keyval == Gdk.KEY_Up:
+            return self._move_selection(0, -1)
+        if keyval == Gdk.KEY_Down:
+            return self._move_selection(0, 1)
+        if keyval == Gdk.KEY_Left:
+            return self._move_selection(-1, 0)
+        if keyval == Gdk.KEY_Right:
+            return self._move_selection(1, 0)
+
+        return False
+
+    def _move_selection(self, dx: int, dy: int) -> bool:
+        grid = getattr(self, "_grid_view", None)
+        if not grid:
+            return False
+        selection = grid.get_model()
+        if not selection or not hasattr(selection, "set_selected"):
+            return False
+        
+        index = selection.get_selected()
+        store = getattr(self, "_list_store", None)
+        if not store:
+            return False
+            
+        n_items = store.get_n_items()
+        if n_items == 0:
+            return False
+
+        if index == Gtk.INVALID_LIST_POSITION:
+            selection.set_selected(0)
+            return True
+
+        actual_cols = grid.get_max_columns()
+        if actual_cols < 1: actual_cols = 1
+        
+        # Orientation-aware logic for GridView
+        is_horiz = getattr(self, "_scroll_direction", "vertical") == "horizontal"
+        
+        if is_horiz:
+            # In horizontal GridView, max_columns refers to items per column (rows)
+            # dx moves between columns, dy moves within a column
+            row = index % actual_cols
+            col = index // actual_cols
+            new_row = row + dy
+            new_col = col + dx
+            new_index = new_col * actual_cols + new_row
+        else:
+            # In vertical GridView, max_columns refers to items per row (cols)
+            # dx moves within a row, dy moves between rows
+            row = index // actual_cols
+            col = index % actual_cols
+            new_row = row + dy
+            new_col = col + dx
+            new_index = new_row * actual_cols + new_col
+
+        if 0 <= new_index < n_items:
+            # Set flag for snapping logic in content.py
+            setattr(self, "_is_keyboard_navigating", True)
+            selection.set_selected(new_index)
+            return True
+        
         return False
 
     def _close_window(self) -> None:

@@ -101,6 +101,12 @@ class ContentMixin:
         self._hide_scrollbars(scroller)
         self._scroller = scroller
 
+        # Track the last known stable scroll position to prevent jumps
+        self._last_stable_vscroll = 0.0
+        adj = scroller.get_hadjustment() if self._scroll_direction == "horizontal" else scroller.get_vadjustment()
+        if adj:
+            adj.connect("value-changed", self._on_scroll_value_changed)
+
         if not self.config.mouse_enabled:
             scroller.set_can_target(False)
         scroller.set_can_focus(True)
@@ -145,12 +151,12 @@ class ContentMixin:
         factory.connect("bind", self._on_factory_bind)
 
         grid_view = Gtk.GridView(model=selection_model, factory=factory)
+
         if self._scroll_direction == "horizontal":
             grid_view.set_orientation(Gtk.Orientation.HORIZONTAL)
         else:
             grid_view.set_orientation(Gtk.Orientation.VERTICAL)
 
-        # grid_view.set_valign(Gtk.Align.START)
         grid_view.set_halign(Gtk.Align.FILL)
         grid_view.add_css_class("matuwall-grid")
         grid_view.add_css_class("matuwall-viewport")
@@ -184,6 +190,18 @@ class ContentMixin:
         self._load_index = 0
         GLib.idle_add(self._load_next_batch)
 
+    def _on_scroll_value_changed(self, adj: Gtk.Adjustment) -> None:
+        if self._is_keyboard_navigating:
+            # During keyboard navigation, ignore the automatic jumps
+            # handle the scroll in _on_selection_changed_snap
+            pass
+        elif self._snap_anim and self._snap_anim.get_state() == Adw.AnimationState.PLAYING:
+            # During our own animation, don't update the stable position
+            pass
+        else:
+            # Normal user scroll (mouse/touchpad), update stable position
+            self._last_stable_vscroll = adj.get_value()
+
     def _on_factory_setup(self, _factory, list_item: Gtk.ListItem) -> None:
         # We'll build the widget in bind because we need the path
         pass
@@ -198,10 +216,12 @@ class ContentMixin:
 
     def _on_selection_changed_snap(self, model: Gtk.SingleSelection, _pspec) -> None:
         if not self._scroller or not self.config:
+            self._is_keyboard_navigating = False
             return
 
         index = model.get_selected()
         if index == Gtk.INVALID_LIST_POSITION:
+            self._is_keyboard_navigating = False
             return
 
         is_horiz = self._scroll_direction == "horizontal"
@@ -219,13 +239,22 @@ class ContentMixin:
 
         adj = self._scroller.get_hadjustment() if is_horiz else self._scroller.get_vadjustment()
         if not adj:
+            self._is_keyboard_navigating = False
             return
 
         item_size = item_outer_width if is_horiz else item_outer_height
+        
+        # Capture current scroll position and determine the animation starting point.
+        # If we just performed a keyboard move, we want to animate from the 
+        # position we WERE at, not where GTK might have jumped
         current_vscroll = adj.get_value()
+        start_vscroll = self._last_stable_vscroll if self._is_keyboard_navigating else current_vscroll
+        
+        # Reset flag now that captured the animation context
+        is_kb = self._is_keyboard_navigating
+        self._is_keyboard_navigating = False
 
-        # In GridView panel mode, cols is always 1 in the non-scrolling direction
-        # In window mode, it's grid_cols
+        # Calculate the index position in the scrolling direction
         if self._panel_mode:
             pos = index
         else:
@@ -235,28 +264,43 @@ class ContentMixin:
             )
             pos = index // cols
 
-        top_item = int(current_vscroll // item_size)
-        bottom_item = top_item + visible_count - 1
+        # Calculate the ideal target positions for snapping (top or bottom)
+        item_top_position = pos * item_size
+        item_bottom_position = (pos - visible_count + 1) * item_size
 
-        target_vscroll = current_vscroll
+        target_vscroll = start_vscroll
 
-        if pos < top_item:
-            target_vscroll = pos * item_size
-        elif pos > bottom_item:
-            target_vscroll = (pos - visible_count + 1) * item_size
+        # Define the currently visible range based on the start position
+        view_top = start_vscroll
+        view_bottom = start_vscroll + (visible_count * item_size)
 
-        if target_vscroll != current_vscroll:
+        # Determine if we need to scroll to bring the item into view
+        if pos * item_size < view_top + 0.5:
+            target_vscroll = item_top_position
+        elif (pos + 1) * item_size > view_bottom - 0.5:
+            target_vscroll = item_bottom_position
+
+        if is_kb or abs(target_vscroll - current_vscroll) > 0.5:
             if self._snap_anim:
                 self._snap_anim.pause()
+                self._snap_anim = None
 
             target_vscroll = max(0, min(target_vscroll, adj.get_upper() - adj.get_page_size()))
+            
+            # If the value has already changed (GTK jump), force it back to 
+            # the start position before initiating the animation to avoid flicker
+            if is_kb and abs(current_vscroll - start_vscroll) > 0.5:
+                adj.set_value(start_vscroll)
 
-            target = Adw.CallbackAnimationTarget.new(adj.set_value)
-            self._snap_anim = Adw.TimedAnimation.new(
-                self._scroller, current_vscroll, target_vscroll, 250, target
-            )
-            self._snap_anim.set_easing(Adw.Easing.EASE_OUT_CUBIC)
-            self._snap_anim.play()
+            if abs(target_vscroll - start_vscroll) > 0.5:
+                target = Adw.CallbackAnimationTarget.new(adj.set_value)
+                self._snap_anim = Adw.TimedAnimation.new(
+                    self._scroller, start_vscroll, target_vscroll, 200, target
+                )
+                self._snap_anim.set_easing(Adw.Easing.EASE_OUT_CUBIC)
+                self._snap_anim.play()
+        
+        self._last_stable_vscroll = target_vscroll
 
     def _on_grid_item_activated(self, _grid_view, position: int) -> None:
         if self._list_store:

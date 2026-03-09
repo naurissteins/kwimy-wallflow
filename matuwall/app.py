@@ -67,6 +67,7 @@ class MatuwallApp(Adw.Application, NavigationMixin, AppBootstrapMixin, RuntimeMi
         self._scrollbar_css_applied = False
         self._snap_anim: Adw.TimedAnimation | None = None
         self._theme_css_provider: Gtk.CssProvider | None = None
+        self._is_keyboard_navigating = False
 
     def do_startup(self) -> None:
         Adw.Application.do_startup(self)
